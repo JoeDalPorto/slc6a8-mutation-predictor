@@ -1,15 +1,13 @@
 import streamlit as st
 
+# Page configurations
 st.set_page_config(
     page_title="SLC6A8 Mutation Predictor",
     page_icon="🧬",
     layout="centered"
 )
 
-st.title("🧬 SLC6A8 Structural Mutation Predictor")
-st.markdown("Evaluate mutation consequences mapped onto the experimental LeuT-fold membrane topology of the creatine transporter.")
-st.divider()
-
+# Amino acid reference dictionary
 AA_MAP = {
     'A': 'Alanine', 'R': 'Arginine', 'N': 'Asparagine', 'D': 'Aspartate',
     'C': 'Cysteine', 'E': 'Glutamate', 'Q': 'Glutamine', 'G': 'Glycine',
@@ -19,148 +17,105 @@ AA_MAP = {
     '*': 'Stop Codon'
 }
 
-# 1. SIDEBAR CONTROLS
-with st.sidebar:
-    st.header("🧬 Variant Editor")
-    mutation_type = st.selectbox(
-        "Mutation Mechanism",
-        ["Missense", "Nonsense", "Frameshift", "Synonymous"],
-        index=0
-    )
-    
-    position = st.slider(
-        "Amino Acid Residue Position",
-        min_value=1,
-        max_value=635,
-        value=351,
-        step=1
-    )
-    st.divider()
-    
-    wt_aa, mut_aa = "N/A", "N/A"
-    if mutation_type == "Missense":
-        wt_aa = st.selectbox("Wild-Type Amino Acid", list(AA_MAP.keys()), index=7)     
-        mut_aa = st.selectbox("Target Substitute Amino Acid", list(AA_MAP.keys()), index=1) 
-    elif mutation_type == "Nonsense":
-        wt_aa = st.selectbox("Wild-Type Amino Acid", list(AA_MAP.keys()), index=7)
-        mut_aa = "*"
+st.title("🧬 SLC6A8 Mutation Predictor")
+st.markdown("Evaluate the predicted pathogenicity risk and structural localization of variants within the SLC6A8 gene.")
+st.divider()
 
-# 2. SECTOR SPECIFIC TOPOLOGY LOGIC
-if position in range(1, 41):
-    active_id, domain_found = "N", "Intracellular N-Terminus"
-elif position in range(41, 66):
-    active_id, domain_found = "1", "Transmembrane Helix 1 (Core Binding)"
-elif position in range(66, 81):
-    active_id, domain_found = "IL1", "Intracellular Loop 1"
-elif position in range(81, 106):
-    active_id, domain_found = "2", "Transmembrane Helix 2 (Scaffold)"
-elif position in range(106, 131):
-    active_id, domain_found = "ECL2", "Extracellular Loop 2"
-elif position in range(131, 156):
-    active_id, domain_found = "3", "Transmembrane Helix 3 (Core Gating)"
-elif position in range(156, 176):
-    active_id, domain_found = "IL2", "Intracellular Loop 2"
-elif position in range(176, 201):
-    active_id, domain_found = "4", "Transmembrane Helix 4 (Scaffold)"
-elif position in range(201, 216):
-    active_id, domain_found = "ECL3", "Extracellular Loop 3"
-elif position in range(216, 241):
-    active_id, domain_found = "5", "Transmembrane Helix 5 (Scaffold)"
-elif position in range(241, 276):
-    active_id, domain_found = "IL3", "Intracellular Loop 3"
-elif position in range(276, 301):
-    active_id, domain_found = "6", "Transmembrane Helix 6 (Core Binding)"
-elif position in range(301, 321):
-    active_id, domain_found = "ECL4", "Extracellular Loop 4"
-elif position in range(321, 346):
-    active_id, domain_found = "7", "Transmembrane Helix 7 (Binding Pocket Core)"
-elif position in range(346, 371):
-    active_id, domain_found = "IL4", "Intracellular Loop 4"
-elif position in range(371, 396):
-    active_id, domain_found = "8", "Transmembrane Helix 8 (Binding Pocket Core)"
-elif position in range(396, 421):
-    active_id, domain_found = "ECL5", "Extracellular Loop 5"
-elif position in range(421, 446):
-    active_id, domain_found = "9", "Transmembrane Helix 9 (Scaffold)"
-elif position in range(446, 466):
-    active_id, domain_found = "IL5", "Intracellular Loop 5"
-elif position in range(466, 491):
-    active_id, domain_found = "10", "Transmembrane Helix 10 (Scaffold)"
-elif position in range(491, 511):
-    active_id, domain_found = "ECL6", "Extracellular Loop 6"
-elif position in range(511, 536):
-    active_id, domain_found = "11", "Transmembrane Helix 11 (Outer Support)"
-elif position in range(536, 546):
-    active_id, domain_found = "IL6", "Intracellular Loop 6"
-elif position in range(546, 571):
-    active_id, domain_found = "12", "Transmembrane Helix 12 (Outer Support)"
-else:
-    active_id, domain_found = "C", "Intracellular C-Terminus"
+st.subheader("🛠️ Input Variant Configuration")
 
-# 3. PATHOGENICITY ALGORITHM
-is_core = active_id in ["1", "3", "6", "7", "8"]
+# 1. MUTATION TYPE SELECTOR
+mutation_type = st.selectbox(
+    "Select Mutation Type",
+    ["Missense", "Nonsense", "Frameshift", "Synonymous"]
+)
+
+# 2. POSITION CONTROLS
+position = st.number_input("Amino Acid Residue Position", min_value=1, max_value=635, value=351)
+
+# 3. DYNAMIC AMINO ACID SPECIFICS (Only shows up if relevant)
+wt_aa = "N/A"
+mut_aa = "N/A"
+
+if mutation_type == "Missense":
+    col_a, col_b = st.columns(2)
+    with col_a:
+        wt_aa = st.selectbox("Original (Wild-Type) Amino Acid", list(AA_MAP.keys()), index=7, key="wt") # Default G
+    with col_b:
+        mut_aa = st.selectbox("New (Mutated) Amino Acid", list(AA_MAP.keys()), index=1, key="mut") # Default R
+elif mutation_type == "Nonsense":
+    wt_aa = st.selectbox("Original (Wild-Type) Amino Acid", list(AA_MAP.keys()), index=7)
+    mut_aa = "*"
+
+st.divider()
+
+# ─── TOPOLOGY MAPPING LOGIC ──────────────────────────────────────────────
+domains = [
+    {"name": "N-terminus", "range": range(1, 41)},
+    {"name": "TM1-TM6", "range": range(41, 300)},
+    {"name": "TM7-TM8 (Binding Pocket)", "range": range(300, 420)},
+    {"name": "TM9-TM12", "range": range(420, 570)},
+    {"name": "C-terminus", "range": range(570, 636)}
+]
+
+domain_found = "Unknown"
+for dom in domains:
+    if position in dom["range"]:
+        domain_found = dom["name"]
+        break
+
+# ─── DYNAMIC VISUAL TOPOLOGY GRAPH ───────────────────────────────────────
+st.subheader("🗺️ Theoretical Molecule Localization Map")
+st.markdown("Visual representation of where your mutation falls along the 635 amino acid chain:")
+
+# Build a visual tracking bar using text elements
+graph_str = ""
+for dom in domains:
+    if position in dom["range"]:
+        graph_str += f" **[ 🔴 MUTATION HERE: {dom['name']} ]** ──"
+    else:
+        graph_str += f" [ {dom['name']} ] ──"
+graph_str = graph_str.rstrip(" ──")
+
+st.info(graph_str)
+
+# ─── PREDICTION ALGORITHM ────────────────────────────────────────────────
 if mutation_type in ['Nonsense', 'Frameshift']:
     prediction = "Pathogenic (High Risk)"
-    alert_box = st.error
-    hgvs = f"p.{(wt_aa if wt_aa != 'N/A' else 'X')}{position}fs" if mutation_type == "Frameshift" else f"p.{wt_aa}{position}*"
-    mechanism = f"Variant **{hgvs}** causes structural truncation, destroying vital downstream transmembrane helices and inducing complete loss of transporter function."
+    status_type = "error"
+    hgvs_notation = f"p.{(wt_aa if wt_aa != 'N/A' else 'X')}{position}fs" if mutation_type == "Frameshift" else f"p.{wt_aa}{position}*"
+    mechanism = f"Triggers a premature stop flag ({hgvs_notation}). This results in nonsense-mediated decay or a severely truncated protein missing vital downstream transmembrane spans."
 elif mutation_type == 'Synonymous':
     prediction = "Benign / Low Risk"
-    alert_box = st.success
-    mechanism = "The nucleotide swap retains the identical amino acid. Transporter fold and binding parameters are unaffected."
+    status_type = "success"
+    mechanism = "The nucleotide substitution codes for the exact same amino acid residue. Structural integrity remains completely unaffected."
 else:  # Missense
-    hgvs = f"p.{wt_aa}{position}{mut_aa}"
-    if is_core:
+    hgvs_notation = f"p.{wt_aa}{position}{mut_aa}"
+    if domain_found == "TM7-TM8 (Binding Pocket)":
         prediction = "Likely Pathogenic (High Risk)"
-        alert_box = st.error
-        mechanism = f"The mutation **{hgvs}** disrupts the specialized LeuT-fold transport core (TM{active_id}). Alterations here directly block structural transitions or destabilize the central creatine (Cr) binding coordination pocket."
-    elif active_id in ["N", "C"]:
+        status_type = "error"
+        mechanism = f"The change **{hgvs_notation}** ({AA_MAP.get(wt_aa)} to {AA_MAP.get(mut_aa)}) shifts properties inside the highly conserved functional core, directly obstructing creatine binding kinetics."
+    elif domain_found in ["N-terminus", "C-terminus"]:
         prediction = "Likely Benign / Tolerated (Low Risk)"
-        alert_box = st.success
-        mechanism = f"The residue variation **{hgvs}** is located within a flexible, non-conserved intracellular terminal tail, preserving transport function."
+        status_type = "success"
+        mechanism = f"The change **{hgvs_notation}** alters an amino acid in flexible terminal tails. These regions lack rigid structural dependencies and typically tolerate point swaps."
     else:
         prediction = "Variant of Uncertain Significance (VUS)"
-        alert_box = st.warning
-        mechanism = f"The change **{hgvs}** is located within an outer scaffold structural domain segment. Requires testing to determine if it impacts folding efficiency or stability."
+        status_type = "warning"
+        mechanism = f"The change **{hgvs_notation}** occurs in a generic transport segment. Pathogenicity will depend highly on chemical differences between {AA_MAP.get(wt_aa)} and {AA_MAP.get(mut_aa)}."
 
-# 4. DATA PRESENTATION PANEL
-st.subheader("📊 Pathogenicity Summary")
-col1, col2 = st.columns(2)
-with col1:
-    st.metric(label="Target Topology Domain", value=domain_found)
-with col2:
-    st.metric(label="HGVS Mutation Identity", value=hgvs if mutation_type in ["Missense", "Nonsense"] else mutation_type)
+# ─── OUTPUT DISPLAY ──────────────────────────────────────────────────────
+st.subheader("📊 Pathogenicity Assessment")
 
-alert_box(f"### **Prediction Outcome:** {prediction}")
-st.info(f"**Predicted Molecular Impact:** {mechanism}")
+if mutation_type in ["Missense", "Nonsense"]:
+    st.markdown(f"**Standard HGVS Nomenclature:** `{hgvs_notation}`")
 
-# 5. DYNAMIC LEUT-FOLD ARCHITECTURE SCHEMATIC
-st.subheader("🗺️ Live Structural Bundle Diagram")
+st.metric(label="Assigned Domain Location", value=domain_found)
 
-colors = {"1":"#0284c7","2":"#a21caf","3":"#0284c7","4":"#a21caf","5":"#a21caf","6":"#0284c7","7":"#a21caf","8":"#0284c7","9":"#a21caf","10":"#a21caf","11":"#a21caf","12":"#a21caf"}
-styles = {k: f"background-color: {colors[k]}; color: white;" for k in colors.keys()}
-loop_styles = {"ECL2":"", "ECL3":"", "ECL4":"", "N":"", "C":""}
+if status_type == "error":
+    st.error(f"⚠️ **Classification:** {prediction}")
+elif status_type == "warning":
+    st.warning(f"⚡ **Classification:** {prediction}")
+elif status_type == "success":
+    st.success(f"✅ **Classification:** {prediction}")
 
-highlight_css = "background-color: #dc2626 !important; color: white !important; box-shadow: 0 0 25px 8px #dc2626; transform: scale(1.1); z-index: 10; border: 2px solid #fff;"
-if active_id in styles:
-    styles[active_id] = highlight_css
-elif active_id in loop_styles:
-    loop_styles[active_id] = "background-color: #dc2626 !important; color: white !important; box-shadow: 0 0 15px 5px #dc2626; border: 1px solid white;"
-
-display_id = active_id + "-Terminus" if active_id in ['N','C'] else "Helix " + active_id
-
-html_lines = [
-    '<div style="font-family: Arial, sans-serif; background-color: #0f172a; padding: 25px; border-radius: 12px; min-width: 650px; overflow-x: auto; box-sizing: border-box; color: white; position: relative;">',
-    f'    <div style="font-size: 11px; color: #94a3b8; font-weight: bold; text-align: center; margin-bottom: 25px; letter-spacing: 1px;">🔴 HIGHLIGHTING TARGET SITE: RESIDUE {position} ({display_id})</div>',
-    '    <div style="height: 100px; border-top: 3px solid #cbd5e1; border-bottom: 3px solid #cbd5e1; background: rgba(203, 213, 225, 0.05); display: flex; justify-content: space-around; align-items: center; position: relative; padding: 0 30px; margin: 40px 0;">',
-    '        <div style="position: absolute; top: -25px; left: 10px; font-size: 11px; font-weight: bold; color: #38bdf8; text-transform: uppercase;">Out (Extracellular)</div>',
-    '        <div style="position: absolute; bottom: -25px; left: 10px; font-size: 11px; font-weight: bold; color: #a855f7; text-transform: uppercase;">In (Intracellular)</div>',
-    f'        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: all 0.3s; {styles["5"]}">5</div>',
-    f'        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: all 0.3s; {styles["4"]}">4</div>',
-    f'        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: all 0.3s; {styles["2"]}">2</div>',
-    f'        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transform: rotate(12deg); transition: all 0.3s; {styles["3"]}">3</div>',
-    '        <div style="display: flex; flex-direction: column; gap: 24px; position: relative; align-items: center;">',
-    f'            <div style="width: 24px; height: 50px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; transition: all 0.3s; {styles["1"]}">1</div>',
-    f'            <div style="width: 24px; height: 50px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; transition: all 0.3s; {styles["1"]}">1</div>',
-    '            <div style="position: absolute; left: 14px; top: 40px; width: 24px; height: 24px; border-radius: 50%; background-color: #f8fafc; border: 2px solid #0284c7; color: #0f172a; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; z-index: 5;">Cr</div>',
-    '        </div>',
+st.markdown(f"**Predicted Molecular Impact:** {mechanism}")
