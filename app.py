@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 st.set_page_config(page_title="SLC6A8 Predictor", page_icon="🧬", layout="centered")
-st.title("🧬 SLC6A8 Structural Mutation Predictor")
-st.markdown("Evaluate mutations mapped onto the experimental LeuT-fold membrane topology with ClinVar cross-referencing.")
+st.title("🧬 SLC6A8 Mutation Evaluator")
+st.markdown("Prediction of mutational consequences with ClinVar cross-referencing.")
 st.divider()
 
 # Extended mapping to show readable full labels in dropdown selectors
