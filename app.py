@@ -134,36 +134,39 @@ with col2:
 alert_box(f"### **Prediction Outcome:** {prediction}")
 st.info(f"**Predicted Molecular Impact:** {mechanism}")
 
-# 5. DYNAMIC LEUT-FOLD ARCHITECTURE SCHEMATIC
+# 5. SAFE GRAPHICS BUILDER (Uses standard clean replacement formatting)
 st.subheader("🗺️ Live Structural Bundle Diagram")
 
 colors = {"1":"#0284c7","2":"#a21caf","3":"#0284c7","4":"#a21caf","5":"#a21caf","6":"#0284c7","7":"#a21caf","8":"#0284c7","9":"#a21caf","10":"#a21caf","11":"#a21caf","12":"#a21caf"}
 styles = {k: f"background-color: {colors[k]}; color: white;" for k in colors.keys()}
 loop_styles = {"ECL2":"", "ECL3":"", "ECL4":"", "N":"", "C":""}
 
+# Apply target highlight styles safely
+highlight_css = "background-color: #dc2626 !important; color: white !important; box-shadow: 0 0 25px 8px #dc2626; transform: scale(1.1); z-index: 10; border: 2px solid #fff;"
 if active_id in styles:
-    styles[active_id] = "background-color: #dc2626 !important; color: white; box-shadow: 0 0 25px 8px #dc2626; transform: scale(1.1); z-index: 10; border: 2px solid #fff;"
+    styles[active_id] = highlight_css
 elif active_id in loop_styles:
     loop_styles[active_id] = "background-color: #dc2626 !important; color: white !important; box-shadow: 0 0 15px 5px #dc2626; border: 1px solid white;"
 
-html_leut_fold = f"""
+# Flat plain text block to bypass f-string parser errors entirely
+raw_html_template = """
 <div style="font-family: Arial, sans-serif; background-color: #0f172a; padding: 25px; border-radius: 12px; min-width: 650px; overflow-x: auto; box-sizing: border-box; color: white; position: relative;">
     <div style="font-size: 11px; color: #94a3b8; font-weight: bold; text-align: center; margin-bottom: 25px; letter-spacing: 1px;">
-        🔴 HIGHLIGHTING TARGET SITE: RESIDUE {position} ({active_id if active_id not in ['N','C'] else active_id + '-Terminus'})
+        🔴 HIGHLIGHTING TARGET SITE: RESIDUE {POS} ({ACT_ID})
     </div>
     <div style="height: 100px; border-top: 3px solid #cbd5e1; border-bottom: 3px solid #cbd5e1; background: rgba(203, 213, 225, 0.05); display: flex; justify-content: space-around; align-items: center; position: relative; padding: 0 30px; margin: 40px 0;">
         <div style="position: absolute; top: -25px; left: 10px; font-size: 11px; font-weight: bold; color: #38bdf8; text-transform: uppercase;">Out (Extracellular)</div>
         <div style="position: absolute; bottom: -25px; left: 10px; font-size: 11px; font-weight: bold; color: #a855f7; text-transform: uppercase;">In (Intracellular)</div>
         
-        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: all 0.3s; {styles['5']}">5</div>
-        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: all 0.3s; {styles['4']}">4</div>
-        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: all 0.3s; {styles['2']}">2</div>
-        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transform: rotate(12deg); transition: all 0.3s; {styles['3']}">3</div>
+        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: all 0.3s; {S5}">5</div>
+        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: all 0.3s; {S4}">4</div>
+        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transition: all 0.3s; {S2}">2</div>
+        <div style="width: 24px; height: 130px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; transform: rotate(12deg); transition: all 0.3s; {S3}">3</div>
         
-        <div style="display: flex; flex-direction: column; gap: 24px; position: relative;">
-            <div style="width: 24px; height: 50px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; transition: all 0.3s; {styles['1']}">1</div>
-            <div style="width: 24px; height: 50px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; transition: all 0.3s; {styles['1']}">1</div>
-            <div style="position: absolute; left: 16px; top: 40px; width: 28px; height: 28px; border-radius: 50%; background-color: #f8fafc; border: 2px solid #0284c7; color: #0f172a; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; z-index: 5;">Cr</div>
+        <div style="display: flex; flex-direction: column; gap: 24px; position: relative; align-items: center;">
+            <div style="width: 24px; height: 50px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; transition: all 0.3s; {S1}">1</div>
+            <div style="width: 24px; height: 50px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; transition: all 0.3s; {S1}">1</div>
+            <div style="position: absolute; left: 14px; top: 40px; width: 24px; height: 24px; border-radius: 50%; background-color: #f8fafc; border: 2px solid #0284c7; color: #0f172a; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; z-index: 5;">Cr</div>
         </div>
         
         <div style="display: flex; flex-direction: column; gap: 24px; position: relative;">
