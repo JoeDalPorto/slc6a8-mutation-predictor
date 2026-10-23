@@ -50,7 +50,6 @@ with st.sidebar:
         mut_aa = "*"
 
 # 2. SECTOR SPECIFIC TOPOLOGY LOGIC 
-# Mapping the 12 TM domains systematically
 if position in range(1, 41):
     active_segment = "N-term"
     domain_found = "N-terminus (Intracellular)"
@@ -107,64 +106,42 @@ with col2:
 alert_box(f"### **Prediction Outcome:** {prediction}")
 st.info(f"**Predicted Molecular Mechanism Impact:**\n\n{mechanism}")
 
-# 5. DYNAMIC ANIMATED TOPOLOGY MAP COMPONENT (HTML/CSS CANVAS)
+# 5. FIXED ANIMATED TOPOLOGY MAP (STRICT SEPARATION OF CSS/HTML)
 st.subheader("🗺️ Live Molecular Topology Visualization")
 
-# Classes dynamically highlight matching domain blocks using CSS animations
-css_highlights = {
-    "N-term": "animation: pulse 1.2s infinite alternate; background-color: #ff4b4b; color: white;",
-    "TM1-6": "animation: pulse 1.2s infinite alternate; background-color: #ff4b4b; color: white;",
-    "TM7-8": "animation: pulse 1.2s infinite alternate; background-color: #ff4b4b; color: white;",
-    "TM9-12": "animation: pulse 1.2s infinite alternate; background-color: #ff4b4b; color: white;",
-    "C-term": "animation: pulse 1.2s infinite alternate; background-color: #ff4b4b; color: white;",
+# Prepare inline styles cleanly to prevent formatting bracket collisions
+styles = {
+    "N-term": "background: #2b2b36; color: #a1a1aa;",
+    "TM1-6": "background: #2b2b36; color: #a1a1aa;",
+    "TM7-8": "background: #2b2b36; color: #a1a1aa;",
+    "TM9-12": "background: #2b2b36; color: #a1a1aa;",
+    "C-term": "background: #2b2b36; color: #a1a1aa;"
 }
-# Default background settings for idle segments
-for k in css_highlights.keys():
-    if k != active_segment:
-        css_highlights[k] = "background-color: #2b2b36; color: #a1a1aa;"
+# Override the active targeted zone with an explicit glowing red animation rule
+styles[active_segment] = "background: #ff4b4b; color: #ffffff; transform: scale(1.05); box-shadow: 0 0 20px #ff4b4b; font-weight: bold; border: 2px solid white;"
 
-html_canvas = f"""
-<div style="font-family: sans-serif; background-color: #111116; padding: 25px; border-radius: 12px; border: 1px solid #3b3b4f; text-align: center;">
-    <style>
-        @keyframes pulse {{
-            0% {{ transform: scale(1.0); box-shadow: 0 0 5px #ff4b4b; }}
-            100% {{ transform: scale(1.05); box-shadow: 0 0 20px #ff4b4b; }}
-        }}
-        .bilayer {{
-            border-top: 6px dashed #4b5563; border-bottom: 6px dashed #4b5563;
-            background: rgba(75, 85, 99, 0.1); padding: 20px 10px; margin: 20px 0;
-            display: flex; justify-content: space-around; align-items: center; position: relative;
-        }}
-        .membrane-label {{
-            position: absolute; left: 10px; top: 38%; color: #6b7280; font-size: 11px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;
-        }}
-        .node {{
-            border-radius: 8px; padding: 12px 8px; font-size: 13px; font-weight: bold; transition: all 0.3s; min-width: 90px;
-        }}
-        .tail {{
-            display: inline-block; padding: 8px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; transition: all 0.3s;
-        }}
-    </style>
+# Simple HTML layout structure injected via native components
+st.components.v1.html(f"""
+<div style="font-family: Arial, sans-serif; background-color: #111116; padding: 20px; border-radius: 12px; text-align: center; color: white; border: 1px solid #3b3b4f;">
+    <div style="color: #9ca3af; font-size: 12px; margin-bottom: 15px; letter-spacing: 1px;">🔴 ACTIVE MUTATION DOMAIN TARGET LOCATION (SITE: {position})</div>
     
-    <div style="color: #9ca3af; font-size: 12px; margin-bottom: 10px;">🔴 INDICATES ACTIVE MUTATION RESIDUE LOCATION (SITE: {position})</div>
-    
-    <!-- Intracellular Top Loop -->
-    <div class="tail" style="{css_highlights['N-term']}">N-Terminus<br>(1-40)</div>
-    
-    <!-- Membrane Segment Row -->
-    <div class="bilayer">
-        <div class="membrane-label">Lipid Bilayer</div>
-        <div class="node" style="{css_highlights['TM1-6']}">🩻 TM1 - TM6<br>Helices<br>(41-299)</div>
-        <div style="font-size: 24px; color: #4b5563;">➔</div>
-        <div class="node" style="{css_highlights['TM7-8']}">🎯 TM7 - TM8<br>Binding Core<br>(300-419)</div>
-        <div style="font-size: 24px; color: #4b5563;">➔</div>
-        <div class="node" style="{css_highlights['TM9-12']}">🩻 TM9 - TM12<br>Helices<br>(420-569)</div>
+    <!-- Top Intracellular Loop -->
+    <div style="display: inline-block; padding: 8px 15px; border-radius: 20px; font-size: 13px; transition: all 0.3s; {styles['N-term']}">
+        N-Terminus (1-40)
     </div>
     
-    <!-- Extracellular Bottom Loop -->
-    <div class="tail" style="{css_highlights['C-term']}">C-Terminus<br>(570-635)</div>
+    <!-- Membrane Complex Grid -->
+    <div style="border-top: 4px dashed #4b5563; border-bottom: 4px dashed #4b5563; background: rgba(75, 85, 99, 0.08); padding: 25px 10px; margin: 20px 0; display: flex; justify-content: space-around; align-items: center;">
+        <div style="border-radius: 8px; padding: 12px 10px; font-size: 13px; text-align: center; transition: all 0.3s; {styles['TM1-6']}">🩻 TM1 - TM6<br>Helices (41-299)</div>
+        <div style="font-size: 20px; color: #4b5563;">➔</div>
+        <div style="border-radius: 8px; padding: 12px 10px; font-size: 13px; text-align: center; transition: all 0.3s; {styles['TM7-8']}">🎯 TM7 - TM8<br>Binding Core (300-419)</div>
+        <div style="font-size: 20px; color: #4b5563;">➔</div>
+        <div style="border-radius: 8px; padding: 12px 10px; font-size: 13px; text-align: center; transition: all 0.3s; {styles['TM9-12']}">🩻 TM9 - TM12<br>Helices (420-569)</div>
+    </div>
+    
+    <!-- Bottom Extracellular Loop -->
+    <div style="display: inline-block; padding: 8px 15px; border-radius: 20px; font-size: 13px; transition: all 0.3s; {styles['C-term']}">
+        C-Terminus (570-635)
+    </div>
 </div>
-"""
-
-# Render container directly into the UI canvas
-st.markdown(html_canvas, unsafe_allow_html=True)
+""", height=280)
