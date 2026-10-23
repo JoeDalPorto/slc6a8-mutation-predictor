@@ -169,5 +169,3 @@ html_canvas = f"""
 
 # Render container
 html(html_canvas, height=260)
-
-
