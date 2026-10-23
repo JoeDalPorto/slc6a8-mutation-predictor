@@ -103,7 +103,7 @@ alert(f"### Predictor Model Output: {pred}")
 st.info(f"**Predicted Impact:** {mech}")
 
 # 4. MAP HELIX POSITIONS AND DRAW VECTOR BLUEPRINT WITH HALO OUTLINES
-st.subheader("🗺️ Experimental LeuT-Fold Structural Blueprint")
+st.subheader("Topological Representation of Mutation Site")
 fig, ax = plt.subplots(figsize=(7.5, 3.3), facecolor='#0f172a')
 ax.set_facecolor('#0f172a')
 
