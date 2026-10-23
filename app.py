@@ -19,7 +19,7 @@ AA_MAP = {
     '*': 'Stop Codon'
 }
 
-# 1. SIDEBAR CONFIGURATION CONTROLS
+# 1. SIDEBAR CONTROLS
 with st.sidebar:
     st.header("🧬 Mutation Configuration")
     st.write("Adjust parameters to dynamically calculate the phenotypic impact.")
@@ -66,7 +66,7 @@ else:
     active_segment = "C-term"
     domain_found = "C-terminus (Intracellular)"
 
-# 3. CONSTRUCTING PATHOGENICITY ALGORITHM
+# 3. PATHOGENICITY ALGORITHM
 if mutation_type in ['Nonsense', 'Frameshift']:
     prediction = "Pathogenic (High Risk)"
     alert_box = st.error
@@ -106,42 +106,73 @@ with col2:
 alert_box(f"### **Prediction Outcome:** {prediction}")
 st.info(f"**Predicted Molecular Mechanism Impact:**\n\n{mechanism}")
 
-# 5. FIXED ANIMATED TOPOLOGY MAP (STRICT SEPARATION OF CSS/HTML)
+# 5. HIGH-FIDELITY 12-PASS TRANS-MEMBRANE CELLULAR GRAPHIC
 st.subheader("🗺️ Live Molecular Topology Visualization")
 
-# Prepare inline styles cleanly to prevent formatting bracket collisions
-styles = {
-    "N-term": "background: #2b2b36; color: #a1a1aa;",
-    "TM1-6": "background: #2b2b36; color: #a1a1aa;",
-    "TM7-8": "background: #2b2b36; color: #a1a1aa;",
-    "TM9-12": "background: #2b2b36; color: #a1a1aa;",
-    "C-term": "background: #2b2b36; color: #a1a1aa;"
-}
-# Override the active targeted zone with an explicit glowing red animation rule
-styles[active_segment] = "background: #ff4b4b; color: #ffffff; transform: scale(1.05); box-shadow: 0 0 20px #ff4b4b; font-weight: bold; border: 2px solid white;"
+# Setup color styles for each domain segment
+bg_colors = {"N-term": "#3f3f46", "TM1-6": "#2563eb", "TM7-8": "#ea580c", "TM9-12": "#16a34a", "C-term": "#3f3f46"}
+glows = {"N-term": "", "TM1-6": "", "TM7-8": "", "TM9-12": "", "C-term": ""}
 
-# Simple HTML layout structure injected via native components
-st.components.v1.html(f"""
-<div style="font-family: Arial, sans-serif; background-color: #111116; padding: 20px; border-radius: 12px; text-align: center; color: white; border: 1px solid #3b3b4f;">
-    <div style="color: #9ca3af; font-size: 12px; margin-bottom: 15px; letter-spacing: 1px;">🔴 ACTIVE MUTATION DOMAIN TARGET LOCATION (SITE: {position})</div>
+# Highlight active element
+bg_colors[active_segment] = "#dc2626"
+glows[active_segment] = "box-shadow: 0 0 25px 8px #dc2626; transform: scale(1.08); border: 2px solid white; z-index: 10;"
+
+# Structure HTML Canvas
+html_membrane = f"""
+<div style="font-family: Arial, sans-serif; background-color: #0f172a; padding: 20px; border-radius: 12px; color: white; min-width: 600px; overflow-x: auto; box-sizing: border-box;">
     
-    <!-- Top Intracellular Loop -->
-    <div style="display: inline-block; padding: 8px 15px; border-radius: 20px; font-size: 13px; transition: all 0.3s; {styles['N-term']}">
-        N-Terminus (1-40)
+    <!-- Compartment: Extracellular Space -->
+    <div style="height: 60px; background: rgba(56, 189, 248, 0.05); border-radius: 8px; position: relative; display: flex; align-items: center; padding-left: 15px;">
+        <span style="color: #38bdf8; font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">Extracellular Space (Outside Cell)</span>
     </div>
     
-    <!-- Membrane Complex Grid -->
-    <div style="border-top: 4px dashed #4b5563; border-bottom: 4px dashed #4b5563; background: rgba(75, 85, 99, 0.08); padding: 25px 10px; margin: 20px 0; display: flex; justify-content: space-around; align-items: center;">
-        <div style="border-radius: 8px; padding: 12px 10px; font-size: 13px; text-align: center; transition: all 0.3s; {styles['TM1-6']}">🩻 TM1 - TM6<br>Helices (41-299)</div>
-        <div style="font-size: 20px; color: #4b5563;">➔</div>
-        <div style="border-radius: 8px; padding: 12px 10px; font-size: 13px; text-align: center; transition: all 0.3s; {styles['TM7-8']}">🎯 TM7 - TM8<br>Binding Core (300-419)</div>
-        <div style="font-size: 20px; color: #4b5563;">➔</div>
-        <div style="border-radius: 8px; padding: 12px 10px; font-size: 13px; text-align: center; transition: all 0.3s; {styles['TM9-12']}">🩻 TM9 - TM12<br>Helices (420-569)</div>
+    <!-- Compartment: Lipid Bilayer Membrane -->
+    <div style="margin: 15px 0; height: 120px; background: linear-gradient(180deg, rgba(244,63,94,0.1) 0%, rgba(244,63,94,0.02) 50%, rgba(244,63,94,0.1) 100%); border-top: 3px solid #f43f5e; border-bottom: 3px solid #f43f5e; position: relative; display: flex; justify-content: center; align-items: center; gap: 4px; padding: 0 50px;">
+        
+        <div style="position: absolute; left: 15px; top: 43%; color: #f43f5e; font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; transform: rotate(-90deg); transform-origin: left center; width: 100px;">Cell Membrane</div>
+        
+        <!-- Helix Group 1-6 -->
+        <div style="display: flex; gap: 4px; transition: all 0.3s; {glows['TM1-6']}">
+            {"".join(f'<div style="width: 14px; height: 110px; background: {bg_colors["TM1-6"]}; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold; color: white;">{i}</div>' for i in range(1, 7))}
+            <div style="position: absolute; top: -12px; width: 104px; text-align: center; font-size: 10px; color: #60a5fa; font-weight: bold; background: #0f172a; padding: 1px 4px; border-radius: 4px; left: 65px;">TM 1 - 6 Spans</div>
+        </div>
+
+        <!-- Binding Pocket Helix Group 7-8 -->
+        <div style="display: flex; gap: 5px; margin: 0 15px; transition: all 0.3s; position: relative; {glows['TM7-8']}">
+            <div style="width: 16px; height: 110px; background: {bg_colors['TM7-8']}; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: white;">7</div>
+            <div style="width: 16px; height: 110px; background: {bg_colors['TM7-8']}; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold; color: white;">8</div>
+            <div style="position: absolute; top: -12px; width: 60px; text-align: center; font-size: 9px; color: #fb923c; font-weight: bold; background: #0f172a; padding: 1px 4px; border-radius: 4px; left: -12px; border: 1px solid #ea580c;">CORE RECEPTOR</div>
+        </div>
+
+        <!-- Helix Group 9-12 -->
+        <div style="display: flex; gap: 4px; transition: all 0.3s; {glows['TM9-12']}">
+            {"".join(f'<div style="width: 14px; height: 110px; background: {bg_colors["TM9-12"]}; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: bold; color: white;">{i}</div>' for i in range(9, 13))}
+            <div style="position: absolute; top: -12px; width: 70px; text-align: center; font-size: 10px; color: #4ade80; font-weight: bold; background: #0f172a; padding: 1px 4px; border-radius: 4px; right: 65px;">TM 9 - 12 Spans</div>
+        </div>
     </div>
     
-    <!-- Bottom Extracellular Loop -->
-    <div style="display: inline-block; padding: 8px 15px; border-radius: 20px; font-size: 13px; transition: all 0.3s; {styles['C-term']}">
-        C-Terminus (570-635)
+    <!-- Compartment: Intracellular Space -->
+    <div style="height: 75px; background: rgba(168, 85, 247, 0.05); border-radius: 8px; position: relative; display: flex; align-items: flex-start; padding-left: 15px; padding-top: 10px; gap: 80px;">
+        <span style="color: #a855f7; font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; margin-right: -40px;">Intracellular Space (Inside Cell)</span>
+        
+        <!-- N-Terminus Tail Tail -->
+        <div style="display: flex; flex-direction: column; align-items: center; margin-left: 20px; transition: all 0.3s; {glows['N-term']}">
+            <div style="width: 5px; height: 20px; background: #64748b;"></div>
+            <div style="background: {bg_colors['N-term']}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: bold; color: #e2e8f0; white-space: nowrap;">N-Terminus (1-40)</div>
+        </div>
+        
+        <!-- C-Terminus Tail -->
+        <div style="display: flex; flex-direction: column; align-items: center; margin-left: auto; margin-right: 60px; transition: all 0.3s; {glows['C-term']}">
+            <div style="width: 5px; height: 20px; background: #64748b;"></div>
+            <div style="background: {bg_colors['C-term']}; padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: bold; color: #e2e8f0; white-space: nowrap;">C-Terminus (570-635)</div>
+        </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 12px; font-size: 11px; color: #94a3b8; font-weight: bold;">
+        CURRENT VARIANT TARGET RESIDUE: <span style="color: #dc2626; font-size: 13px;">Residue {position} ({active_segment})</span>
     </div>
 </div>
-""", height=280)
+"""
+
+# Render full diagram box cleanly using core components
+st.components.v1.html(html_membrane, height=340)
