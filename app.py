@@ -134,7 +134,7 @@ with col2:
 alert_box(f"### **Prediction Outcome:** {prediction}")
 st.info(f"**Predicted Molecular Impact:** {mechanism}")
 
-# 5. DYNAMIC LEUT-FOLD ARCHITECTURE SCHEMATIC (TRIPLE-QUOTE FREE IMPLEMENTATION)
+# 5. DYNAMIC LEUT-FOLD ARCHITECTURE SCHEMATIC
 st.subheader("🗺️ Live Structural Bundle Diagram")
 
 colors = {"1":"#0284c7","2":"#a21caf","3":"#0284c7","4":"#a21caf","5":"#a21caf","6":"#0284c7","7":"#a21caf","8":"#0284c7","9":"#a21caf","10":"#a21caf","11":"#a21caf","12":"#a21caf"}
@@ -149,7 +149,6 @@ elif active_id in loop_styles:
 
 display_id = active_id + "-Terminus" if active_id in ['N','C'] else "Helix " + active_id
 
-# Assembling HTML segment by segment via list concatenation to guarantee no syntax splitting
 html_lines = [
     '<div style="font-family: Arial, sans-serif; background-color: #0f172a; padding: 25px; border-radius: 12px; min-width: 650px; overflow-x: auto; box-sizing: border-box; color: white; position: relative;">',
     f'    <div style="font-size: 11px; color: #94a3b8; font-weight: bold; text-align: center; margin-bottom: 25px; letter-spacing: 1px;">🔴 HIGHLIGHTING TARGET SITE: RESIDUE {position} ({display_id})</div>',
@@ -163,3 +162,5 @@ html_lines = [
     '        <div style="display: flex; flex-direction: column; gap: 24px; position: relative; align-items: center;">',
     f'            <div style="width: 24px; height: 50px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; transition: all 0.3s; {styles["1"]}">1</div>',
     f'            <div style="width: 24px; height: 50px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; transition: all 0.3s; {styles["1"]}">1</div>',
+    '            <div style="position: absolute; left: 14px; top: 40px; width: 24px; height: 24px; border-radius: 50%; background-color: #f8fafc; border: 2px solid #0284c7; color: #0f172a; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; z-index: 5;">Cr</div>',
+    '        </div>',
