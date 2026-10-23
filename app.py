@@ -18,7 +18,7 @@ AA_LABELS = {
 }
 
 CLINVAR_DB = {
-    "p.G351R": ("2290132", "VUS", "Reviewed by ClinGen expert panel. High in-silico constraint but insufficient case data."),
+    "p.G351R": ("2290132", "VUS", "Reviewed by ClinGen expert panel. High in-silico constraint but insufficient emperical data."),
     "p.P382L": ("533700", "Pathogenic", "Observed in multiple patients exhibiting classic X-linked Creatine Transporter Deficiency (CTD)."),
     "p.P390L": ("1361089", "Likely Pathogenic", "Disrupts the conserved loop transition flanking the functional transporter core."),
     "p.A495T": ("942968", "Likely Benign", "Frequently observed in standard healthy population cohorts; retains transport activity."),
@@ -85,7 +85,7 @@ elif mut_type == 'Synonymous':
 else:
     if is_core: pred, alert, mech = "Likely Pathogenic (High Risk)", st.error, f"Alters core machinery (TM{active_id}), directly stalling substrate binding coordinates."
     elif active and active[4] == "terminus": pred, alert, mech = "Likely Benign (Low Risk)", st.success, "Rests inside a flexible terminal tail outside active structural folds."
-    else: pred, alert, mech = "Variant of Uncertain Significance (VUS)", st.warning, "Alters an outer structural loop or non-core span. Empirical metrics required."
+    else: pred, alert, mech = "Variant of Uncertain Significance (VUS)", st.warning, "Alters an outer structural loop or non-core span. functional impact unknown."
 
 # 3. INTERFACE DISPLAY PANELS
 col1, col2 = st.columns(2)
@@ -103,7 +103,7 @@ alert(f"### Predictor Model Output: {pred}")
 st.info(f"**Predicted Impact:** {mech}")
 
 # 4. MAP HELIX POSITIONS AND DRAW VECTOR BLUEPRINT WITH HALO OUTLINES
-st.subheader("🗺️ Experimental LeuT-Fold Structural Blueprint")
+st.subheader("Topological Blueprint of Mutation Location")
 fig, ax = plt.subplots(figsize=(7.5, 3.3), facecolor='#0f172a')
 ax.set_facecolor('#0f172a')
 
