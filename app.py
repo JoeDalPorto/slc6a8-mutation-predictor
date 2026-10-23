@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as html
 
 st.set_page_config(
     page_title="SLC6A8 Mutation Predictor",
@@ -167,5 +166,5 @@ html_canvas = f"""
 </div>
 """
 
-# Render container
-html(html_canvas, height=260)
+# Render container directly into the UI canvas
+st.markdown(html_canvas, unsafe_allow_html=True)
