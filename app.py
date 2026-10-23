@@ -60,12 +60,11 @@ col2.metric("Variant Identity", f"p.{wt_aa}{position}{mut_aa}" if mutation_type=
 alert(f"### Prediction Outcome: {prediction}")
 st.info(f"**Predicted Molecular Impact:** {mechanism}")
 
-# 4. MATPLOTLIB VECTOR IMAGE GENERATION ( LeuT-Fold Structure Array )
+# 4. MATPLOTLIB IMAGE GENERATION
 st.subheader("🗺️ Live Structural Bundle Diagram")
 fig, ax = plt.subplots(figsize=(7, 2.5), facecolor='#0f172a')
 ax.set_facecolor('#0f172a')
 
-# Layout sequence representing the exact image blueprint
 helix_order = ["5", "4", "2", "3", "1", "6", "8", "7", "9", "10", "11", "12"]
 core_helices = ["1", "3", "6", "8"]
 
@@ -77,17 +76,15 @@ ax.text(-0.8, -0.6, "IN (Intracellular)", color='#a855f7', fontsize=7, fontweigh
 
 for idx, h_id in enumerate(helix_order):
     x_pos = idx * 0.7
-    # Determine color archetype
-    if h_id == active_id: color = '#dc2626' # Red Glow target highlight
-    elif h_id in core_helices: color = '#0284c7' # Core Teal
-    else: color = '#a21caf' # Scaffold Purple
+    if h_id == active_id: color = '#dc2626'
+    elif h_id in core_helices: color = '#0284c7'
+    else: color = '#a21caf'
     
-    # Draw cylinder representation
-    rect = plt.Rectangle((x_pos-0.2, -0.4), 0.4, 0.8, color=color, alpha=0.9, rwidth=None)
+    rect = plt.Rectangle((x_pos-0.2, -0.4), 0.4, 0.8, color=color, alpha=0.9)
     ax.add_patch(rect)
     ax.text(x_pos, 0, h_id, color='white', ha='center', va='center', fontsize=9, fontweight='bold')
 
-# Draw Creatine molecule asset marker next to core bundle channels
+# Draw Creatine molecule asset marker
 ax.plot(3.15, 0, marker='o', markersize=14, color='#f8fafc', markeredgecolor='#0284c7', markeredgewidth=2)
 ax.text(3.15, 0, "Cr", color='#0f172a', ha='center', va='center', fontsize=7, fontweight='bold')
 
