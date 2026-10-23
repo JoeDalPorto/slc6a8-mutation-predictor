@@ -1,13 +1,17 @@
 import streamlit as st
 
-# Page configurations
+# 1. Page Configuration & Title Styling
 st.set_page_config(
     page_title="SLC6A8 Mutation Predictor",
     page_icon="🧬",
     layout="centered"
 )
 
-# Amino acid reference dictionary
+st.title("🧬 SLC6A8 Computational Mutation Effect Predictor")
+st.markdown("Predict how structural domain variations across the SLC6A8 protein impact variant pathogenicity risks.")
+st.divider()
+
+# Dictionary to decode single letter amino acids to full names
 AA_MAP = {
     'A': 'Alanine', 'R': 'Arginine', 'N': 'Asparagine', 'D': 'Aspartate',
     'C': 'Cysteine', 'E': 'Glutamate', 'Q': 'Glutamine', 'G': 'Glycine',
@@ -17,44 +21,48 @@ AA_MAP = {
     '*': 'Stop Codon'
 }
 
-st.title("🧬 SLC6A8 Mutation Predictor")
-st.markdown("Evaluate the predicted pathogenicity risk and structural localization of variants within the SLC6A8 gene.")
-st.divider()
+# 2. Left Sidebar Control Panel (The Interactive Configuration Panel)
+with st.sidebar:
+    st.header("🧬 Mutation Configuration")
+    st.write("Adjust parameters to dynamically calculate the phenotypic impact.")
+    st.divider()
+    
+    # Mutational Mechanism Dropdown
+    mutation_type = st.selectbox(
+        "Mutation Type / Mechanism",
+        ["Missense", "Nonsense", "Frameshift", "Synonymous"],
+        index=0
+    )
+    
+    # Interactive Amino Acid Slider (1 to 635)
+    position = st.slider(
+        "Amino Acid Site of Interest",
+        min_value=1,
+        max_value=635,
+        value=351,
+        step=1,
+        help="Slide across the 635 amino acid sequence of the SLC6A8 transporter."
+    )
+    
+    st.divider()
+    
+    # Conditional target substitute controls (only shows when relevant to clean up space)
+    wt_aa = "N/A"
+    mut_aa = "N/A"
+    if mutation_type == "Missense":
+        wt_aa = st.selectbox("Wild-Type Amino Acid", list(AA_MAP.keys()), index=7)     # Default G
+        mut_aa = st.selectbox("Target Substitute Amino Acid", list(AA_MAP.keys()), index=1) # Default R
+    elif mutation_type == "Nonsense":
+        wt_aa = st.selectbox("Wild-Type Amino Acid", list(AA_MAP.keys()), index=7)
+        mut_aa = "*"
 
-st.subheader("🛠️ Input Variant Configuration")
-
-# 1. MUTATION TYPE SELECTOR
-mutation_type = st.selectbox(
-    "Select Mutation Type",
-    ["Missense", "Nonsense", "Frameshift", "Synonymous"]
-)
-
-# 2. POSITION CONTROLS
-position = st.number_input("Amino Acid Residue Position", min_value=1, max_value=635, value=351)
-
-# 3. DYNAMIC AMINO ACID SPECIFICS (Only shows up if relevant)
-wt_aa = "N/A"
-mut_aa = "N/A"
-
-if mutation_type == "Missense":
-    col_a, col_b = st.columns(2)
-    with col_a:
-        wt_aa = st.selectbox("Original (Wild-Type) Amino Acid", list(AA_MAP.keys()), index=7, key="wt") # Default G
-    with col_b:
-        mut_aa = st.selectbox("New (Mutated) Amino Acid", list(AA_MAP.keys()), index=1, key="mut") # Default R
-elif mutation_type == "Nonsense":
-    wt_aa = st.selectbox("Original (Wild-Type) Amino Acid", list(AA_MAP.keys()), index=7)
-    mut_aa = "*"
-
-st.divider()
-
-# ─── TOPOLOGY MAPPING LOGIC ──────────────────────────────────────────────
+# 3. Structural Topology Mapping Logic
 domains = [
-    {"name": "N-terminus", "range": range(1, 41)},
-    {"name": "TM1-TM6", "range": range(41, 300)},
-    {"name": "TM7-TM8 (Binding Pocket)", "range": range(300, 420)},
-    {"name": "TM9-TM12", "range": range(420, 570)},
-    {"name": "C-terminus", "range": range(570, 636)}
+    {"name": "N-terminus (Intracellular)", "range": range(1, 41)},
+    {"name": "TM1 - TM6 Domains", "range": range(41, 300)},
+    {"name": "TM7 - TM8 (Creatine Binding Pocket)", "range": range(300, 420)},
+    {"name": "TM9 - TM12 Domains", "range": range(420, 570)},
+    {"name": "C-terminus (Intracellular)", "range": range(570, 636)}
 ]
 
 domain_found = "Unknown"
@@ -63,59 +71,63 @@ for dom in domains:
         domain_found = dom["name"]
         break
 
-# ─── DYNAMIC VISUAL TOPOLOGY GRAPH ───────────────────────────────────────
-st.subheader("🗺️ Theoretical Molecule Localization Map")
-st.markdown("Visual representation of where your mutation falls along the 635 amino acid chain:")
+# 4. Pathogenicity Algorithm
+if mutation_type in ['Nonsense', 'Frameshift']:
+    prediction = "Pathogenic (High Risk)"
+    status_color = "red"
+    alert_box = st.error
+    hgvs = f"p.{(wt_aa if wt_aa != 'N/A' else 'X')}{position}fs" if mutation_type == "Frameshift" else f"p.{wt_aa}{position}*"
+    mechanism = f"Variant **{hgvs}** causes a major structural truncation or nonsense-mediated decay, leading to an absolute loss of functional Creatine Transporter 1 (CT1)."
+elif mutation_type == 'Synonymous':
+    prediction = "Benign / Low Risk"
+    status_color = "green"
+    alert_box = st.success
+    mechanism = "The alternative codon yields the identical amino acid residue. The primary protein structure and transport kinetics remain completely normal."
+else:  # Missense
+    hgvs = f"p.{wt_aa}{position}{mut_aa}"
+    if "TM7 - TM8" in domain_found:
+        prediction = "Likely Pathogenic (High Risk)"
+        status_color = "red"
+        alert_box = st.error
+        mechanism = f"The change **{hgvs}** ({AA_MAP.get(wt_aa)} → {AA_MAP.get(mut_aa)}) shifts spatial characteristics inside the critical substrate core, breaking creatine binding."
+    elif "terminus" in domain_found:
+        prediction = "Likely Benign / Tolerated (Low Risk)"
+        status_color = "green"
+        alert_box = st.success
+        mechanism = f"The change **{hgvs}** shifts an amino acid in a flexible, variable terminal tail. Point substitutions outside membrane boundaries are structurally tolerated."
+    else:
+        prediction = "Variant of Uncertain Significance (VUS - Moderate Risk)"
+        status_color = "orange"
+        alert_box = st.warning
+        mechanism = f"The change **{hgvs}** changes properties inside a general transmembrane support helical channel. Requires empirical uptake tracking to confirm disruption profile."
 
-# Build a visual tracking bar using text elements
+# 5. Dashboard Output Layout (Main Interface Panel)
+st.subheader("📊 Algorithmic Consequence Assessment")
+
+# Display Domain Location & Standardized Name Side-by-Side
+col1, col2 = st.columns(2)
+with col1:
+    st.metric(label="Target Topology Mapping", value=domain_found)
+with col2:
+    if mutation_type in ["Missense", "Nonsense"]:
+        st.metric(label="HGVS Standard Variant Name", value=hgvs)
+    else:
+        st.metric(label="Variant Structural Profile", value=mutation_type)
+
+# Display the main classification container color code
+alert_box(f"### **Prediction Outcome:** {prediction}")
+
+# Display Explanatory Mechanism Card
+st.info(f"**Predicted Molecular Mechanism Impact:**\n\n{mechanism}")
+
+# 6. Interactive Localization Graphic Map
+st.subheader("🗺️ Structural Chain Mapping Visualization")
 graph_str = ""
 for dom in domains:
     if position in dom["range"]:
-        graph_str += f" **[ 🔴 MUTATION HERE: {dom['name']} ]** ──"
+        graph_str += f" 👉 **[🔴 {dom['name']}]** ──"
     else:
-        graph_str += f" [ {dom['name']} ] ──"
+        graph_str += f" [ {dom['name'].split(' (')[0]} ] ──"
 graph_str = graph_str.rstrip(" ──")
 
-st.info(graph_str)
-
-# ─── PREDICTION ALGORITHM ────────────────────────────────────────────────
-if mutation_type in ['Nonsense', 'Frameshift']:
-    prediction = "Pathogenic (High Risk)"
-    status_type = "error"
-    hgvs_notation = f"p.{(wt_aa if wt_aa != 'N/A' else 'X')}{position}fs" if mutation_type == "Frameshift" else f"p.{wt_aa}{position}*"
-    mechanism = f"Triggers a premature stop flag ({hgvs_notation}). This results in nonsense-mediated decay or a severely truncated protein missing vital downstream transmembrane spans."
-elif mutation_type == 'Synonymous':
-    prediction = "Benign / Low Risk"
-    status_type = "success"
-    mechanism = "The nucleotide substitution codes for the exact same amino acid residue. Structural integrity remains completely unaffected."
-else:  # Missense
-    hgvs_notation = f"p.{wt_aa}{position}{mut_aa}"
-    if domain_found == "TM7-TM8 (Binding Pocket)":
-        prediction = "Likely Pathogenic (High Risk)"
-        status_type = "error"
-        mechanism = f"The change **{hgvs_notation}** ({AA_MAP.get(wt_aa)} to {AA_MAP.get(mut_aa)}) shifts properties inside the highly conserved functional core, directly obstructing creatine binding kinetics."
-    elif domain_found in ["N-terminus", "C-terminus"]:
-        prediction = "Likely Benign / Tolerated (Low Risk)"
-        status_type = "success"
-        mechanism = f"The change **{hgvs_notation}** alters an amino acid in flexible terminal tails. These regions lack rigid structural dependencies and typically tolerate point swaps."
-    else:
-        prediction = "Variant of Uncertain Significance (VUS)"
-        status_type = "warning"
-        mechanism = f"The change **{hgvs_notation}** occurs in a generic transport segment. Pathogenicity will depend highly on chemical differences between {AA_MAP.get(wt_aa)} and {AA_MAP.get(mut_aa)}."
-
-# ─── OUTPUT DISPLAY ──────────────────────────────────────────────────────
-st.subheader("📊 Pathogenicity Assessment")
-
-if mutation_type in ["Missense", "Nonsense"]:
-    st.markdown(f"**Standard HGVS Nomenclature:** `{hgvs_notation}`")
-
-st.metric(label="Assigned Domain Location", value=domain_found)
-
-if status_type == "error":
-    st.error(f"⚠️ **Classification:** {prediction}")
-elif status_type == "warning":
-    st.warning(f"⚡ **Classification:** {prediction}")
-elif status_type == "success":
-    st.success(f"✅ **Classification:** {prediction}")
-
-st.markdown(f"**Predicted Molecular Impact:** {mechanism}")
+st.markdown(f"<div style='background-color:#1e1e24; padding:15px; border-radius:8px; border-left:5px solid #ff4b4b; color: white;'>{graph_str}</div>", unsafe_allow_html=True)
