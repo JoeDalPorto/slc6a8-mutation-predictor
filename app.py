@@ -7,9 +7,16 @@ st.title("🧬 SLC6A8 Structural Mutation Predictor")
 st.markdown("Evaluate mutations mapped onto the experimental LeuT-fold membrane topology with ClinVar cross-referencing.")
 st.divider()
 
-AA_MAP = {'A':'Alanine','R':'Arginine','N':'Asparagine','D':'Aspartate','C':'Cysteine','E':'Glutamate','Q':'Glutamine','G':'Glycine','H':'Histidine','I':'Isoleucine','L':'Leucine','K':'Lysine','M':'Methionine','F':'Phenylalanine','P':'Proline','S':'Serine','T':'Threonine','W':'Tryptophan','Y':'Tyrosine','V':'Valine','*':'Stop'}
+# Extended mapping to show readable full labels in dropdown selectors
+AA_LABELS = {
+    'A': 'A (Alanine)', 'R': 'R (Arginine)', 'N': 'N (Asparagine)', 'D': 'D (Aspartate)',
+    'C': 'C (Cysteine)', 'E': 'E (Glutamate)', 'Q': 'Q (Glutamine)', 'G': 'G (Glycine)',
+    'H': 'H (Histidine)', 'I': 'I (Isoleucine)', 'L': 'L (Leucine)', 'K': 'K (Lysine)',
+    'M': 'M (Methionine)', 'F': 'F (Phenylalanine)', 'P': 'P (Proline)', 'S': 'S (Serine)',
+    'T': 'T (Threonine)', 'W': 'W (Tryptophan)', 'Y': 'Y (Tyrosine)', 'V': 'V (Valine)',
+    '*': '* (Stop Codon)'
+}
 
-# CLINVAR DATABASE BENCHMARKS
 CLINVAR_DB = {
     "p.G351R": ("2290132", "VUS", "Reviewed by ClinGen expert panel. High in-silico constraint but insufficient case data."),
     "p.P382L": ("533700", "Pathogenic", "Observed in multiple patients exhibiting classic X-linked Creatine Transporter Deficiency (CTD)."),
@@ -21,15 +28,21 @@ CLINVAR_DB = {
 with st.sidebar:
     st.header("🧬 Variant Editor")
     mut_type = st.selectbox("Mechanism", ["Missense", "Nonsense", "Frameshift", "Synonymous"])
-    pos = st.slider("Residue Position", 1, 635, 351)
+    
+    # Dual-input layout: User can type the number directly OR slide across the bar
+    pos_input = st.number_input("Residue Position Box", min_value=1, max_value=635, value=351, step=1)
+    pos = st.slider("Residue Position Slider", 1, 635, value=int(pos_input))
+    
     wt, mut = "N/A", "N/A"
     if mut_type == "Missense":
-        wt, mut = st.selectbox("Wild-Type", list(AA_MAP.keys()), index=7), st.selectbox("Substitute", list(AA_MAP.keys()), index=1)
+        wt_key = st.selectbox("Wild-Type Amino Acid", list(AA_LABELS.keys()), index=7, format_func=lambda x: AA_LABELS[x])
+        mut_key = st.selectbox("Substitute Amino Acid", list(AA_LABELS.keys()), index=1, format_func=lambda x: AA_LABELS[x])
+        wt, mut = wt_key, mut_key
     elif mut_type == "Nonsense":
-        wt, mut = st.selectbox("Wild-Type", list(AA_MAP.keys()), index=7), "*"
+        wt_key = st.selectbox("Wild-Type Amino Acid", list(AA_LABELS.keys()), index=7, format_func=lambda x: AA_LABELS[x])
+        wt, mut = wt_key, "*"
 
-# 1. COMPACT TOPOLOGY ARCHITECTURE DATA
-# Format: (ID, Name, Start, End, Type, Side/Curve)
+# 1. TOPOLOGY ARCHITECTURE DATA STRUCTURE
 raw_topology = [
     ("N", "Intracellular N-Terminus", 1, 40, "terminus", 0),
     ("1", "Transmembrane Helix 1 (Core)", 41, 65, "helix", 0),
@@ -74,12 +87,11 @@ else:
     elif active and active[4] == "terminus": pred, alert, mech = "Likely Benign (Low Risk)", st.success, "Rests inside a flexible terminal tail outside active structural folds."
     else: pred, alert, mech = "Variant of Uncertain Significance (VUS)", st.warning, "Alters an outer structural loop or non-core span. Empirical metrics required."
 
-# 3. DASHBOARD INTERFACE PANELS
+# 3. INTERFACE DISPLAY PANELS
 col1, col2 = st.columns(2)
 col1.metric("Mapped Domain", dom_name)
 col2.metric("Variant Identity", hgvs)
 
-# ClinVar Card Renderer
 c_match = CLINVAR_DB.get(hgvs)
 if c_match:
     st.subheader("📚 ClinVar Database Cross-Reference")
@@ -90,7 +102,7 @@ if c_match:
 alert(f"### Predictor Model Output: {pred}")
 st.info(f"**Predicted Impact:** {mech}")
 
-# 4. STRUCTURE GRAPHICS WITH DYNAMIC YELLOW HALO PATHS
+# 4. MAP HELIX POSITIONS AND DRAW VECTOR BLUEPRINT WITH HALO OUTLINES
 st.subheader("🗺️ Experimental LeuT-Fold Structural Blueprint")
 fig, ax = plt.subplots(figsize=(7.5, 3.3), facecolor='#0f172a')
 ax.set_facecolor('#0f172a')
@@ -103,18 +115,18 @@ ax.axhline(-0.5, color='#475569', linestyle='--', linewidth=1.2)
 ax.text(-0.8, 0.65, "OUT (Extracellular)", color='#38bdf8', fontsize=7, fontweight='bold')
 ax.text(-0.8, -0.75, "IN (Intracellular)", color='#a855f7', fontsize=7, fontweight='bold')
 
-# A. Render Loop Connectivity
+# A. Draw Loop Connections
 for item in raw_topology:
     if item[4] != "loop": continue
     x1, x2 = x_coords[item[5][2]], x_coords[item[5][3]]
     yb = 0.5 if item[5][0] == "out" else -0.5
     path = patches.Path([(x1, yb), ((x1+x2)/2, yb+item[5][1]), (x2, yb)], [patches.Path.MOVETO, patches.Path.CURVE3, patches.Path.CURVE3])
     
-    if active_id == item[0]: # Draw Yellow Loop Halo
+    if active_id == item[0]:
         ax.add_patch(patches.PathPatch(path, edgecolor='#eab308', facecolor='none', linewidth=5.5, alpha=0.9, zorder=1))
     ax.add_patch(patches.PathPatch(path, edgecolor='#64748b', facecolor='none', linewidth=1.5, zorder=2))
 
-# B. Render Terminal Tails
+# B. Draw Terminal Lines
 if active_id == "N": ax.plot([x_coords["1"], x_coords["1"]-0.3], [-0.5, -0.8], color='#eab308', linewidth=6, zorder=1)
 if active_id == "C": ax.plot([x_coords["12"], x_coords["12"]+0.3], [-0.5, -0.8], color='#eab308', linewidth=6, zorder=1)
 ax.plot([x_coords["1"], x_coords["1"]-0.3], [-0.5, -0.8], color='#64748b', linewidth=2, zorder=2)
@@ -122,15 +134,15 @@ ax.plot([x_coords["12"], x_coords["12"]+0.3], [-0.5, -0.8], color='#64748b', lin
 ax.text(x_coords["1"]-0.3, -0.85, "N-term", color='#eab308' if active_id=="N" else '#94a3b8', fontsize=7, ha='center', fontweight='bold')
 ax.text(x_coords["12"]+0.3, -0.85, "C-term", color='#eab308' if active_id=="C" else '#94a3b8', fontsize=7, ha='center', fontweight='bold')
 
-# C. Render Cylinder Segments
+# C. Draw Cylinder Blocks
 for h, x in x_coords.items():
-    if h == active_id: # Draw Yellow Cylinder Halo
+    if h == active_id:
         ax.add_patch(patches.Rectangle((x-0.23, -0.55), 0.46, 1.1, color='#eab308', zorder=2))
     rect = patches.Rectangle((x-0.18, -0.5), 0.36, 1.0, color='#0284c7' if h in ["1","3","6","8"] else '#a21caf', alpha=0.95, zorder=3)
     ax.add_patch(rect)
     ax.text(x, 0, h, color='white', ha='center', va='center', fontsize=9, fontweight='bold', zorder=4)
 
-# Substrate Pellet
+# Cargo Pellet
 ax.plot(2.92, 0, marker='o', markersize=14, color='#f8fafc', markeredgecolor='#0284c7', markeredgewidth=2, zorder=5)
 ax.text(2.92, 0, "Cr", color='#0f172a', ha='center', va='center', fontsize=7, fontweight='bold', zorder=6)
 
