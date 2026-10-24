@@ -37,7 +37,7 @@ loop_mapping = {"ECL1":(66,80,"out",0.2,"1","2"),"IL1":(106,130,"in",-0.2,"2","3
 
 active_id, dom_name = ("N", "Intracellular N-Terminus") if current_pos <= 40 else (("C", "Intracellular C-Terminus") if current_pos >= 571 else ("Loops", "Interhelical Structural Loop"))
 for h, (s, e) in helix_mapping.items():
-    if s 🗺️ Experimental LeuT-Fold Blueprint Mapping</h3>", unsafe_allow_html=True)
+    if s Experimental LeuT-Fold Blueprint Mapping</h3>", unsafe_allow_html=True)
 fig, ax = plt.subplots(figsize=(7.5, 3.1), facecolor='#0b0f19'); ax.set_facecolor('#0b0f19')
 helix_order = ["5", "4", "2", "3", "1", "6", "8", "7", "9", "10", "11", "12"]
 x_coords = {h: i * 0.65 for i, h in enumerate(helix_order)}
