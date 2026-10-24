@@ -33,7 +33,7 @@ with st.sidebar:
     mut = "*" if mut_type == "Nonsense" else st.selectbox("Substitute Amino Acid", list(AA_MAP.keys()), index=10, format_func=lambda x: f"{x} ({AA_MAP[x]})") if mut_type == "Missense" else "N/A"
 
 helix_mapping = {"1":(41,65),"2":(81,105),"3":(131,155),"4":(176,200),"5":(216,240),"6":(276,300),"7":(321,345),"8":(371,395),"9":(421,445),"10":(466,490),"11":(511,535),"12":(546,570)}
-loop_mapping = {"ECL1":(66,80,"out",0.2,"1","2"),"IL1":(106,130,"in",-0.2,"2","3"),"ECL2":(156,175,"out",0.3,"3","4"),"IL2":(201,215,"in",-0.2,"4","5"),"ECL3":(241,275,"out",0.4,"5","6"),"IL3":(301,320,"in",-0.3,"6","7"),"ECL4":(346,370,"out",0.2,"7","8"),"IL4":(397,420,"in",-0.3 canvas position,"8","9"),"ECL5":(446,465,"out",0.2,"9","10"),"IL5":(491,510,"in",-0.2,"10","11"),"ECL6":(536,545,"out",0.2,"11","12")}
+loop_mapping = {"ECL1":(66,80,"out",0.2,"1","2"),"IL1":(106,130,"in",-0.2,"2","3"),"ECL2":(156,175,"out",0.3,"3","4"),"IL2":(201,215,"in",-0.2,"4","5"),"ECL3":(241,275,"out",0.4,"5","6"),"IL3":(301,320,"in",-0.3,"6","7"),"ECL4":(346,370,"out",0.2,"7","8"),"IL4":(397,420,"in",-0.3,"8","9"),"ECL5":(446,465,"out",0.2,"9","10"),"IL5":(491,510,"in",-0.2,"10","11"),"ECL6":(536,545,"out",0.2,"11","12")}
 
 active_id, dom_name = ("N", "Intracellular N-Terminus") if current_pos <= 40 else (("C", "Intracellular C-Terminus") if current_pos >= 571 else ("Loops", "Interhelical Structural Loop"))
 for h, (s, e) in helix_mapping.items():
