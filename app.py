@@ -2,7 +2,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-# Import our backend configuration fields cleanly from our custom file
+# Import backend cleanly from our custom file
 from topology import REF_SEQ, AA_MAP, CLINVAR_DB, HELIX_MAP, LOOP_MAP
 
 st.set_page_config(page_title="SLC6A8 Predictor", page_icon="🧬", layout="centered")
@@ -41,7 +41,42 @@ with st.sidebar:
 active_id, dom_name = ("N", "Intracellular N-Terminus") if current_pos <= 40 else (("C", "Intracellular C-Terminus") if current_pos >= 571 else ("Loops", "Interhelical Structural Loop"))
 
 for h_id, (s, e) in HELIX_MAP.items():
-    if s Experimental LeuT-Fold Blueprint Mapping</h3>", unsafe_allow_html=True)
+    if s <= current_pos <= e: active_id, dom_name = h_id, f"Transmembrane Helix {h_id}"
+for l_id, (s, e, side, curve, f_h, t_h) in LOOP_MAP.items():
+    if s <= current_pos <= e: active_id, dom_name = l_id, f"{l_id} Domain Region"
+
+# ─── CALCULATE PREDICTIONS AND METRICS ──────────────────────────────────────
+is_core = active_id in ["1","3","6","7","8"] or active_id in ["ECL1","IL1","ECL2","IL2","ECL3","IL3","ECL4","IL4"]
+
+if mut_type in ['Nonsense', 'Frameshift']:
+    risk_score, trans_yield, pred, alert, mech = 100, 0, "Pathogenic (High Risk)", st.error, "Triggers structural protein truncation or NMD; complete loss of functional transport operations."
+elif mut_type == 'Synonymous':
+    risk_score, trans_yield, pred, alert, mech = 5, 98, "Benign / Low Risk", st.success, "Silent nucleotide substitution preserves original sequence fold parameters completely."
+else:
+    if is_core: risk_score, trans_yield, pred, alert, mech = 85, 12, "Likely Pathogenic (High Risk)", st.error, f"Alters critical transport core segments ({active_id}), directly stalling creatine binding pocket coordination."
+    elif active_id in ["N", "C"]: risk_score, trans_yield, pred, alert, mech = 15, 88, "Likely Benign (Low Risk)", st.success, "Alters flexible terminal tail residues outside vital functional structural wraps."
+    else: risk_score, trans_yield, pred, alert, mech = 45, 55, "Variant of Uncertain Significance (VUS)", st.warning, "Modifies general peripheral scaffold wraps. Empirical tracking assays required."
+
+hgvs = f"p.{wt_letter}{current_pos}{mut}" if mut_type == "Missense" else (f"p.{wt_letter}{current_pos}*" if mut_type == "Nonsense" else (f"p.X{current_pos}fs" if mut_type == "Frameshift" else "Synonymous"))
+
+# ─── RENDER READOUT INTERFACE ───────────────────────────────────────────────
+col_a, col_b, col_c, col_d = st.columns(4)
+col_a.metric("Mapped Domain", active_id if active_id in ["N","C"] else f"TM {active_id}" if active_id.isdigit() else active_id)
+col_b.metric("Variant Identity", hgvs)
+col_c.metric("Calculated Risk", f"{risk_score}%")
+col_d.metric("Transporter Yield", f"{trans_yield}%")
+
+# Safe native informational blocks
+cm = CLINVAR_DB.get(hgvs)
+if cm:
+    st.warning(f"**ClinVar Database Record Match Found**\n\n* **Clinical Status:** {cm[1]}\n* **Evidence Track:** {cm[2]}\n* **Formal Variant Reference:** {cm[3]}")
+    st.link_button(f"Open Official NCBI Archive #{cm[0]} ➔", f"https://nih.gov{cm[0]}")
+
+alert(f"### Predictor Model Output: {pred}")
+st.info(f"**Predicted Molecular Impact:**\n\n{mech}")
+
+# ─── VECTOR IMAGING BLUEPRINT ───────────────────────────────────────────────
+st.markdown("### Experimental LeuT-Fold Blueprint Mapping")
 fig, ax = plt.subplots(figsize=(7.5, 3.1), facecolor='#0b0f19')
 ax.set_facecolor('#0b0f19')
 
