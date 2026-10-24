@@ -4,21 +4,19 @@ import matplotlib.patches as patches
 
 st.set_page_config(page_title="SLC6A8 Predictor", page_icon="🧬", layout="centered")
 
-# Inject design stylesheet
-st.markdown("<style>.stApp { background-color: #0b0f19; color: #f1f5f9; font-family: 'Inter', sans-serif; } section[data-testid='stSidebar'] { background-color: #111827 !important; border-right: 1px solid #1f2937; } div[data-testid='stMetricValue'] { font-family: monospace !important; font-weight: 700 !important; color: #38bdf8 !important; font-size: 22px !important; } div[data-testid='metric-container'] { background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; border-radius: 12px; padding: 15px !important; } h1, h2, h3 { color: #ffffff !important; font-weight: 700 !important; }</style>", unsafe_allow_html=True)
+st.markdown("<style>.stApp { background-color: #0b0f19; color: #f1f5f9; font-family: 'Inter', sans-serif; } section[data-testid='stSidebar'] { background-color: #111827 !important; border-right: 1px solid #1f2937; } div[data-testid='stMetricValue'] { font-family: monospace !important; font-weight: 700 !important; color: #38bdf8 !important; font-size: 22px !important; } div[data-testid='metric-container'] { background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; border-radius: 12px; padding: 15px !important; }</style>", unsafe_allow_html=True)
 st.markdown("<h1 style='text-align: center; margin-bottom: 5px;'>🧬 SLC6A8 Computational Predictor</h1><p style='text-align: center; color: #94a3b8; font-size: 14px;'>Advanced LeuT-Fold Molecular Mutation Mapping Engine</p>", unsafe_allow_html=True)
 st.divider()
 
-# Anchored clinical records and amino acid mapping shortcuts
 REF_SEQ = "M" * 340 + "G" * 15 + "P" * 40 + "A" * 100 + "R" * 20 + "A" * 120
 AA_MAP = {'A':'Alanine','R':'Arginine','N':'Asparagine','D':'Aspartate','C':'Cysteine','E':'Glutamate','Q':'Glutamine','G':'Glycine','H':'Histidine','I':'Isoleucine','L':'Leucine','K':'Lysine','M':'Methionine','F':'Phenylalanine','P':'Proline','S':'Serine','T':'Threonine','W':'Tryptophan','Y':'Tyrosine','V':'Valine','*':'Stop Codon'}
+
 CLINVAR_DB = {
-    "p.G351R": ("2290132", "VUS", "Reviewed by ClinGen panel. High in-silico constraint but low data.", "NCBI ClinVar / ClinGen solute carrier panel criteria."),
-    "p.P382L": ("533700", "Pathogenic", "Observed in classic X-linked CTD cohorts. Limits creatine uptake.", "OMIM Reference Entry: #300352. PubMed ID Reference: PMID: 11313764."),
-    "p.P390L": ("1361089", "Likely Pathogenic", "Disrupts the conserved functional loops backing structural core shifts.", "ACMG/AMP secondary structural mutation review indices.")
+    "p.G351R": ("2290132", "VUS", "Reviewed by ClinGen panel. High constraint but low data.", "ClinGen solute carrier panel criteria."),
+    "p.P382L": ("533700", "Pathogenic", "Observed in classic X-linked CTD cohorts. Limits creatine uptake.", "OMIM Entry: #300352. PMID: 11313764."),
+    "p.P390L": ("1361089", "Likely Pathogenic", "Disrupts the loop transitions flanking the structural core folds.", "ACMG/AMP secondary structural mutation review indices.")
 }
 
-# Bidirectional synchronization logic
 if "pos" not in st.session_state: st.session_state.pos = 351
 def sync_box(): st.session_state.pos = st.session_state.b_in
 def sync_slide(): st.session_state.pos = st.session_state.s_in
@@ -34,19 +32,12 @@ with st.sidebar:
     st.markdown(f"<span style='color:#94a3b8; font-size:12px;'>AUTO-POPULATED WILD-TYPE</span><br><code style='font-size:14px; color:#38bdf8;'>{wt_letter} ({AA_MAP.get(wt_letter)})</code>", unsafe_allow_html=True)
     mut = "*" if mut_type == "Nonsense" else st.selectbox("Substitute Amino Acid", list(AA_MAP.keys()), index=10, format_func=lambda x: f"{x} ({AA_MAP[x]})") if mut_type == "Missense" else "N/A"
 
-# Structural topology ranges
 helix_mapping = {"1":(41,65),"2":(81,105),"3":(131,155),"4":(176,200),"5":(216,240),"6":(276,300),"7":(321,345),"8":(371,395),"9":(421,445),"10":(466,490),"11":(511,535),"12":(546,570)}
-loop_mapping = {"ECL1":(66,80,"out",0.2,"1","2"),"IL1":(106,130,"in",-0.2,"2","3"),"ECL2":(156,175,"out",0.3,"3","4"),"IL2":(201,215,"in",-0.2,"4","5"),"ECL3":(241,275,"out",0.4,"5","6"),"IL3":(301,320,"in",-0.3,"6","7"),"ECL4":(346,370,"out",0.2,"7","8"),"IL4":(397,420,"in",-0.3,"8","9"),"ECL5":(446,465,"out",0.2,"9","10"),"IL5":(491,510,"in",-0.2,"10","11"),"ECL6":(536,545,"out",0.2,"11","12")}
+loop_mapping = {"ECL1":(66,80,"out",0.2,"1","2"),"IL1":(106,130,"in",-0.2,"2","3"),"ECL2":(156,175,"out",0.3,"3","4"),"IL2":(201,215,"in",-0.2,"4","5"),"ECL3":(241,275,"out",0.4,"5","6"),"IL3":(301,320,"in",-0.3,"6","7"),"ECL4":(346,370,"out",0.2,"7","8"),"IL4":(397,420,"in",-0.3 canvas position,"8","9"),"ECL5":(446,465,"out",0.2,"9","10"),"IL5":(491,510,"in",-0.2,"10","11"),"ECL6":(536,545,"out",0.2,"11","12")}
 
 active_id, dom_name = ("N", "Intracellular N-Terminus") if current_pos <= 40 else (("C", "Intracellular C-Terminus") if current_pos >= 571 else ("Loops", "Interhelical Structural Loop"))
 for h, (s, e) in helix_mapping.items():
-    if s <h4 style="color: #eab308 !important; margin: 0 0 5px 0; font-size: 15px;">📚 ClinVar Database Match Found</h4><span style="font-size: 13px;"><b>Status:</b> {cm[1]}</span><br><span style="font-size: 13px; color: #94a3b8;"><b>Evidence:</b> {cm[2]}</span><br><span style="font-size: 13px; color: #cbd5e1;"><b>Reference:</b> <i>{cm[3]}</i></span><br><span style="font-size: 12px; margin-top: 8px; display:inline-block;"><a href="https://nih.gov{cm[0]}" target="_blank" style="color: #38bdf8; text-decoration: none;">Open NCBI Record #{cm[0]} ➔</a></span></div>', unsafe_allow_html=True)
-
-alert(f"### Predictor Model Output: {pred}")
-st.info(f"**Predicted Molecular Impact:**\n\n{mech}")
-
-# Vector mapping visualization
-st.markdown("<h3 style='font-size: 18px; margin-top: 20px; margin-bottom: -10px;'>🗺️ Experimental LeuT-Fold Blueprint Mapping</h3>", unsafe_allow_html=True)
+    if s 🗺️ Experimental LeuT-Fold Blueprint Mapping</h3>", unsafe_allow_html=True)
 fig, ax = plt.subplots(figsize=(7.5, 3.1), facecolor='#0b0f19'); ax.set_facecolor('#0b0f19')
 helix_order = ["5", "4", "2", "3", "1", "6", "8", "7", "9", "10", "11", "12"]
 x_coords = {h: i * 0.65 for i, h in enumerate(helix_order)}
