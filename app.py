@@ -38,9 +38,9 @@ st.divider()
 if "pos" not in st.session_state: 
     st.session_state.pos = 351
 
-# Update callback to handle direct slider interactions
-def update_from_slide():
-    st.session_state.pos = st.session_state.slider_val
+# Handler to catch direct slider movements safely
+def handle_slider_change():
+    st.session_state.pos = st.session_state.pos_slider
 
 with st.sidebar:
     st.markdown("<h2 style='font-size: 18px; margin-bottom: 0;'>🛠️ Variant Editor</h2>", unsafe_allow_html=True)
@@ -48,10 +48,10 @@ with st.sidebar:
     
     mut_type = st.selectbox("Mechanism Type", ["Missense", "Nonsense", "Frameshift", "Synonymous"])
     
-    # Single residue slider input control
-    st.slider("Residue Position", 1, 635, key="slider_val", on_change=update_from_slide, value=st.session_state.pos)
+    # 1. Standard Slider tied directly to state
+    st.slider("Residue Position", 1, 635, key="pos_slider", on_change=handle_slider_change, value=st.session_state.pos)
     
-    # Fine-Tuning Step Controls (+1 / -1) Layout Row
+    # 2. Stepper Fine-Tuning Layout Buttons modifying state directly
     btn_col1, btn_col2 = st.columns(2)
     with btn_col1:
         if st.button("⬅️ Step -1", use_container_width=True):
@@ -76,7 +76,7 @@ with st.sidebar:
         mut = "*"
         st.markdown(f"**Substitute Residue:**  \n`{AA_MAP.get('*')}`")
     elif mut_type == "Missense":
-        mut = st.selectbox("Substitute Residue", list(AA_MAP.keys()), index=10, format_func=lambda x: AA_MAP[x])
+        mut = st.selectbox("Substitute Amino Acid", list(AA_MAP.keys()), index=10, format_func=lambda x: AA_MAP[x])
     else:
         mut = "N/A"
         st.markdown("**Substitute Residue:**  \n`Not Applicable`")
@@ -104,7 +104,7 @@ else:
 # Generate clean HGVS code for database lookups (e.g., p.P382L)
 hgvs = f"p.{wt_letter}{current_pos}{mut}" if mut_type == "Missense" else (f"p.{wt_letter}{current_pos}*" if mut_type == "Nonsense" else (f"p.X{current_pos}fs" if mut_type == "Frameshift" else "Synonymous"))
 
-# DEBUG Output Monitor to catch key mismatches live
+# Engine Diagnostic Variant Readout Label
 st.write(f"⚙️ **System Engine Variant String Generated:** `{hgvs}`")
 
 # ─── RENDER READOUT INTERFACE ───────────────────────────────────────────────
