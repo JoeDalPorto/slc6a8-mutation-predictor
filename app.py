@@ -34,12 +34,13 @@ st.markdown("""
 st.markdown("<h1 style='text-align: center; margin-bottom: 5px;'>🧬 SLC6A8 Computational Predictor</h1><p style='text-align: center; color: #94a3b8; font-size: 14px;'>Advanced LeuT-Fold Molecular Mutation Mapping Engine</p>", unsafe_allow_html=True)
 st.divider()
 
-# ─── STATE MANAGEMENT SINGLE SLIDER SOURCE ──────────────────────────────────
+# ─── STATE MANAGEMENT SINGLE SLIDER SOURCE WITH STEP TUNING ────────────────
 if "pos" not in st.session_state: 
     st.session_state.pos = 351
 
-current_pos = st.session_state.pos
-wt_letter = REF_SEQ[current_pos - 1] if current_pos <= len(REF_SEQ) else "G"
+# Update callback to handle direct slider interactions
+def update_from_slide():
+    st.session_state.pos = st.session_state.slider_val
 
 with st.sidebar:
     st.markdown("<h2 style='font-size: 18px; margin-bottom: 0;'>🛠️ Variant Editor</h2>", unsafe_allow_html=True)
@@ -48,7 +49,23 @@ with st.sidebar:
     mut_type = st.selectbox("Mechanism Type", ["Missense", "Nonsense", "Frameshift", "Synonymous"])
     
     # Single residue slider input control
-    current_pos = st.slider("Residue Position", 1, 635, value=st.session_state.pos, key="pos")
+    st.slider("Residue Position", 1, 635, key="slider_val", on_change=update_from_slide, value=st.session_state.pos)
+    
+    # Fine-Tuning Step Controls (+1 / -1) Layout Row
+    btn_col1, btn_col2 = st.columns(2)
+    with btn_col1:
+        if st.button("⬅️ Step -1", use_container_width=True):
+            if st.session_state.pos > 1:
+                st.session_state.pos -= 1
+                st.rerun()
+    with btn_col2:
+        if st.button("Step +1 ➡️", use_container_width=True):
+            if st.session_state.pos < 635:
+                st.session_state.pos += 1
+                st.rerun()
+                
+    current_pos = st.session_state.pos
+    wt_letter = REF_SEQ[current_pos - 1] if current_pos <= len(REF_SEQ) else "G"
     
     # Display wild-type using full nomenclature
     st.markdown(f"**Wild-Type Residue:**  \n`{AA_MAP.get(wt_letter, 'Unknown')}`")
