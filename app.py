@@ -22,9 +22,14 @@ st.markdown("<h1 style='text-align: center; margin-bottom: 5px;'>🧬 SLC6A8 Com
 st.divider()
 
 # ─── STATE MANAGEMENT BIDIRECTIONAL LOGIC ───────────────────────────────────
-if "pos" not in st.session_state: st.session_state.pos = 351
-def sync_box(): st.session_state.pos = st.session_state.b_in
-def sync_slide(): st.session_state.pos = st.session_state.s_in
+if "pos" not in st.session_state: 
+    st.session_state.pos = 351
+
+# Force immediate updates across widgets when either one moves
+def update_from_box(): 
+    st.session_state.pos = st.session_state.b_in
+def update_from_slide(): 
+    st.session_state.pos = st.session_state.s_in
 
 current_pos = st.session_state.pos
 wt_letter = REF_SEQ[current_pos - 1] if current_pos <= len(REF_SEQ) else "G"
@@ -32,10 +37,14 @@ wt_letter = REF_SEQ[current_pos - 1] if current_pos <= len(REF_SEQ) else "G"
 with st.sidebar:
     st.markdown("<h2 style='font-size: 18px;'>🛠️ Variant Editor</h2>", unsafe_allow_html=True)
     mut_type = st.selectbox("Mechanism Type", ["Missense", "Nonsense", "Frameshift", "Synonymous"])
-    st.number_input("Residue Position Box", 1, 635, value=st.session_state.pos, key="b_in", on_change=sync_box)
-    st.slider("Residue Position Slider", 1, 635, value=st.session_state.pos, key="s_in", on_change=sync_slide)
+    
+    # Passing the exact variable directly into the value parameter guarantees box sync
+    st.number_input("Residue Position Box", 1, 635, value=current_pos, key="b_in", on_change=update_from_box)
+    st.slider("Residue Position Slider", 1, 635, value=current_pos, key="s_in", on_change=update_from_slide)
+    
     st.markdown(f"<span style='color:#94a3b8; font-size:12px;'>AUTO-POPULATED WILD-TYPE</span><br><code style='font-size:14px; color:#38bdf8;'>{wt_letter} ({AA_MAP.get(wt_letter, 'Unknown')})</code>", unsafe_allow_html=True)
-    mut = "*" if mut_type == "Nonsense" else st.selectbox("Substitute Amino Acid", list(AA_MAP.keys()), index=10, format_func=lambda x: AA_MAP[x]) if mut_type == "Missense" else "N/A"
+    
+    mut = "*" if mut_type == "Nonsense" else st.selectbox("Substitute Amino Acid", list(AA_MAP.keys()), index=10) if mut_type == "Missense" else "N/A"
 
 # ─── MAP STRUCTURAL LOCATIONS ───────────────────────────────────────────────
 active_id, dom_name = ("N", "Intracellular N-Terminus") if current_pos <= 40 else (("C", "Intracellular C-Terminus") if current_pos >= 571 else ("Loops", "Interhelical Structural Loop"))
@@ -57,6 +66,7 @@ else:
     elif active_id in ["N", "C"]: risk_score, trans_yield, pred, alert, mech = 15, 88, "Likely Benign (Low Risk)", st.success, "Alters flexible terminal tail residues outside vital functional structural wraps."
     else: risk_score, trans_yield, pred, alert, mech = 45, 55, "Variant of Uncertain Significance (VUS)", st.warning, "Modifies general peripheral scaffold wraps. Empirical tracking assays required."
 
+# The HGVS string structure must align precisely with your database keys (e.g. p.P382L)
 hgvs = f"p.{wt_letter}{current_pos}{mut}" if mut_type == "Missense" else (f"p.{wt_letter}{current_pos}*" if mut_type == "Nonsense" else (f"p.X{current_pos}fs" if mut_type == "Frameshift" else "Synonymous"))
 
 # ─── RENDER READOUT INTERFACE ───────────────────────────────────────────────
@@ -66,7 +76,7 @@ col_b.metric("Variant Identity", hgvs)
 col_c.metric("Calculated Risk", f"{risk_score}%")
 col_d.metric("Transporter Yield", f"{trans_yield}%")
 
-# Safe native informational blocks
+# Clean, safe database cross-reference verification
 cm = CLINVAR_DB.get(hgvs)
 if cm:
     st.warning(f"**ClinVar Database Record Match Found**\n\n* **Clinical Status:** {cm[1]}\n* **Evidence Track:** {cm[2]}\n* **Formal Variant Reference:** {cm[3]}")
