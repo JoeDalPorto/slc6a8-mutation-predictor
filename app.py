@@ -1,9 +1,7 @@
 import streamlit as st
-import matplotlib.pyplot as plt
-import numpy as np
-
-# Import backend variables and structures
+import json
 from topology import REF_SEQ, AA_MAP, CLINVAR_DB, HELIX_MAP, LOOP_MAP
+import streamlit.components.v1 as components
 
 # 1. Page Configuration & Layout Customization
 st.set_page_config(page_title="SLC6A8 Mutation Predictor", layout="wide")
@@ -32,11 +30,10 @@ st.markdown(
 
 # 2. State Management (Single Source of Truth)
 if "pos" not in st.session_state:
-    st.session_state.pos = 1  # 1-indexed representation for biological notation
+    st.session_state.pos = 1
 
 MAX_RESIDUE = len(REF_SEQ)
 
-# Stepper adjustment callbacks with strict boundary clamping
 def step_down():
     if st.session_state.pos > 1:
         st.session_state.pos -= 1
@@ -48,14 +45,12 @@ def step_up():
 # 3. Sidebar Configuration (Controls)
 st.sidebar.header("Navigation & Variant Setup")
 
-# Fine-tuning UI column layout
 col_prev, col_next = st.sidebar.columns(2)
 with col_prev:
     st.button("⬅️ Step -1", on_click=step_down, use_container_width=True)
 with col_next:
     st.button("Step +1 ➡️", on_click=step_up, use_container_width=True)
 
-# Main positional slider (Synced via state value)
 st.slider(
     "Select Residue Position",
     min_value=1,
@@ -63,82 +58,121 @@ st.slider(
     key="pos"
 )
 
-# Extract properties for current selection
 current_pos = st.session_state.pos
-wt_residue = REF_SEQ[current_pos - 1]  # Safely convert to 0-index string offset
+wt_residue = REF_SEQ[current_pos - 1]
 wt_full_name = AA_MAP.get(wt_residue, "Unknown Residue")
 
-# Display unified nomenclature header within the control board
 st.sidebar.markdown(f"**Wild-Type Residue:** `{wt_residue}{current_pos}` ({wt_full_name})")
 
-# Mutation Target Dropdown (Unified format matching the WT display)
 aa_options = [f"{aa} ({name})" for aa, name in AA_MAP.items() if aa != wt_residue]
 selected_alt_raw = st.sidebar.selectbox("Select Variant Allele (MUT)", aa_options)
 alt_residue = selected_alt_raw.split(" ")[0]
 
-# 4. Core Visualizations & Data Processing (Main Window)
+# 4. Streamlit Python Metric Lookups
+if current_pos in HELIX_MAP:
+    domain_type = f"Transmembrane Helix {HELIX_MAP[current_pos]}"
+    domain_class = "bg-red-900/40 text-red-200 border-red-500"
+elif current_pos in LOOP_MAP:
+    domain_type = f"{LOOP_MAP[current_pos]}"
+    domain_class = "bg-blue-900/40 text-blue-200 border-blue-500"
+else:
+    domain_type = "Unmapped / Terminal Tail"
+    domain_class = "bg-gray-800 text-gray-400 border-gray-600"
+
+variant_key = f"{wt_residue}{current_pos}{alt_residue}"
+clinvar_status = CLINVAR_DB.get(variant_key, "Not Documented / Novel Variant")
+
+if "Pathogenic" in clinvar_status:
+    clinvar_class = "bg-rose-900/40 text-rose-200 border-rose-600"
+elif "Benign" in clinvar_status:
+    clinvar_class = "bg-emerald-900/40 text-emerald-200 border-emerald-500"
+else:
+    clinvar_class = "bg-amber-900/40 text-amber-200 border-amber-500"
+
+# 5. Core Layout Structure (Main Window)
 st.title("⚡ SLC6A8 Creatine Transporter Variant Explorer")
 st.subheader(f"Current Target: {wt_residue}{current_pos}{alt_residue}")
 
-# Context Layout Columns
-metrics_col, plot_col = st.columns([1, 2])
+# Render metrics using clean HTML layout to match the dashboard style
+metrics_col1, metrics_col2 = st.columns(2)
+with metrics_col1:
+    st.markdown(
+        f"""<div class="p-4 rounded-lg border-l-4 {domain_class}" style="padding: 1rem; border-radius: 0.5rem; border-left-width: 4px; background-color: rgba(30, 41, 59, 0.7); min-height: 90px; border-color: inherit;">
+            <span style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #9ca3af; display: block;">Structural Domain Map</span>
+            <span style="font-size: 1.125rem; font-weight: bold; margin-top: 0.25rem; display: block;">{domain_type}</span>
+        </div>""", 
+        unsafe_allow_html=True
+    )
 
-with metrics_col:
-    st.markdown("### Topology & ClinVar Status")
-    
-    # Domain Mapping Lookup
-    if current_pos in HELIX_MAP:
-        domain_type = f"Transmembrane Helix {HELIX_MAP[current_pos]}"
-        bg_color = "#ffe6e6"
-    elif current_pos in LOOP_MAP:
-        domain_type = f"Loop Region ({LOOP_MAP[current_pos]})"
-        bg_color = "#e6f2ff"
-    else:
-        domain_type = "Unmapped / Terminal Tail"
-        bg_color = "#f0f0f0"
-        
-    st.info(f"**Structural Domain:** {domain_type}")
-    
-    # Variant Specific Database Check
-    variant_key = f"{wt_residue}{current_pos}{alt_residue}"
-    clinvar_status = CLINVAR_DB.get(variant_key, "Not Documented / Novel Variant")
-    
-    if "Pathogenic" in clinvar_status:
-        st.error(f"**ClinVar Classification:** {clinvar_status}")
-    elif "Benign" in clinvar_status:
-        st.success(f"**ClinVar Classification:** {clinvar_status}")
-    else:
-        st.warning(f"**ClinVar Classification:** {clinvar_status}")
+with metrics_col2:
+    st.markdown(
+        f"""<div class="p-4 rounded-lg border-l-4 {clinvar_class}" style="padding: 1rem; border-radius: 0.5rem; border-left-width: 4px; background-color: rgba(30, 41, 59, 0.7); min-height: 90px; border-color: inherit;">
+            <span style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #9ca3af; display: block;">ClinVar Database Classification</span>
+            <span style="font-size: 1.125rem; font-weight: bold; margin-top: 0.25rem; display: block;">{clinvar_status}</span>
+        </div>""", 
+        unsafe_allow_html=True
+    )
 
-with plot_col:
-    st.markdown("### LeuT-Fold Topology Plot")
-    
-    # Generate structural plot dynamically
-    fig, ax = plt.subplots(figsize=(7, 4))
-    
-    # Synthesize layout representation across a 12-TM standard grid
-    x_coords = np.arange(1, MAX_RESIDUE + 1)
-    # Simple simulated spatial wave tracking Transmembrane (TM) transitions
-    y_coords = np.sin(x_coords / 10) * 5 + np.cos(x_coords / 35) * 2
-    
-    # Plot complete backbone trajectory
-    ax.plot(x_coords, y_coords, color="#cccccc", label="Backbone", zorder=1, linewidth=1.5)
-    
-    # Highlight current functional groupings
-    helix_positions = [p for p in x_coords if p in HELIX_MAP]
-    loop_positions = [p for p in x_coords if p in LOOP_MAP]
-    
-    ax.scatter(helix_positions, [y_coords[p-1] for p in helix_positions], color="#ff4b4b", s=3, label="TM Helices", alpha=0.5)
-    ax.scatter(loop_positions, [y_coords[p-1] for p in loop_positions], color="#1f77b4", s=3, label="Loops", alpha=0.5)
-    
-    # Accentuate currently evaluated locus
-    ax.scatter([current_pos], [y_coords[current_pos-1]], color="#2ca02c", s=130, edgecolor="black", linewidth=1.5, label=f"Active Site ({wt_residue}{current_pos})", zorder=5)
-    
-    # Plot design adjustments
-    ax.set_title("LeuT-Structural Configuration Map", fontsize=10, fontweight="bold")
-    ax.set_xlabel("Residue Position Sequence", fontsize=8)
-    ax.set_ylabel("Membrane Vector Coordinate", fontsize=8)
-    ax.legend(loc="upper right", fontsize=7)
-    ax.grid(True, linestyle="--", alpha=0.3)
-    
-    st.pyplot(fig)
+# 6. Injecting the Interactive Chart Template (Chart.js Engine)
+st.markdown("### LeuT-Structural Configuration Map")
+
+# Convert Python map structures to JSON safe parameters for browser processing
+helix_json = json.dumps(HELIX_MAP)
+loop_json = json.dumps(LOOP_MAP)
+
+# Generate raw interactive HTML frame responsive component block
+html_code = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body {{ background-color: #111827; margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }}
+        .chart-container {{ position: relative; width: 100vw; height: 320px; }}
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <canvas id="canvasChart"></canvas>
+    </div>
+
+    <script>
+        const refSeqLength = {MAX_RESIDUE};
+        const currentPos = {current_pos};
+        const helixMap = {helix_json};
+        const loopMap = {loop_json};
+
+        const xCoords = Array.from({{length: refSeqLength}}, (_, i) => i + 1);
+        const backboneTrace = xCoords.map(x => Math.sin(x / 10) * 5 + Math.cos(x / 35) * 2);
+
+        const helixData = xCoords.filter(x => helixMap[x]).map(x => ({{ x: x, y: backboneTrace[x-1] }}));
+        const loopData = xCoords.filter(x => loopMap[x]).map(x => ({{ x: x, y: backboneTrace[x-1] }}));
+
+        const ctx = document.getElementById('canvasChart').getContext('2d');
+        new Chart(ctx, {{
+            type: 'scatter',
+            data: {{
+                datasets: [
+                    {{ label: 'Backbone', data: xCoords.map((x, i) => ({{ x: x, y: backboneTrace[i] }})), showLine: true, borderColor: '#4b5563', borderWidth: 2, pointRadius: 0, order: 2 }},
+                    {{ label: 'TM Helices', data: helixData, backgroundColor: '#ef4444', pointRadius: 4, order: 3 }},
+                    {{ label: 'Loops', data: loopData, backgroundColor: '#3b82f6', pointRadius: 4, order: 4 }},
+                    {{ label: 'Active Locus', data: [{{ x: currentPos, y: backboneTrace[currentPos - 1] }}], backgroundColor: '#10b981', pointRadius: 10, borderColor: '#ffffff', borderWidth: 2, order: 1 }}
+                ]
+            }},
+            options: {{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {{
+                    x: {{ type: 'linear', title: {{ display: true, text: 'Residue Position Sequence', color: '#9ca3af' }}, grid: {{ color: '#374151' }}, ticks: {{ color: '#9ca3af' }}, min: 1, max: refSeqLength }},
+                    y: {{ title: {{ display: true, text: 'Membrane Vector Coordinate', color: '#9ca3af' }}, grid: {{ color: '#374151' }}, ticks: {{ color: '#9ca3af' }} }}
+                }},
+                plugins: {{ legend: {{ labels: {{ color: '#f3f4f6' }} }} }}
+            }}
+        }});
+    </script>
+</body>
+</html>
+"""
+
+# Render custom component window
+components.html(html_code, height=340)
