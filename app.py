@@ -3,24 +3,31 @@ import json
 from topology import REF_SEQ, AA_MAP, CLINVAR_DB, HELIX_MAP, LOOP_MAP
 import streamlit.components.v1 as components
 
-# 1. Page Configuration & Layout Customization
+# 1. Force Streamlit to hide its default wrappers, margins, and headers globally
 st.set_page_config(page_title="SLC6A8 Mutation Predictor", layout="wide")
 
-# Custom CSS to force bright white sidebar text labels & slider metrics
 st.markdown(
     """
     <style>
-        /* Force bright white for sidebar widget text */
-        [data-testid="stSidebar"] .stWidgetLabel p {
+        /* Eliminate native Streamlit body padding to let the template expand fully */
+        [data-testid="stAppViewContainer"] {
+            background-color: #0f172a !important;
+        }
+        [data-testid="stMainBlockContainer"] {
+            padding: 0rem !important;
+            max-width: 100% !important;
+        }
+        /* Completely hide standard header anchors */
+        header { visibility: hidden !important; height: 0px !important; }
+        div[data-testid="stToolbar"] { display: none !important; }
+        
+        /* Force Bright White text labels inside native Sidebar frame */
+        [data-testid="stSidebar"] .stWidgetLabel p, 
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
             color: #FFFFFF !important;
             font-weight: 600 !important;
         }
-        /* Target slider specific tick marks and numerical labels */
         [data-testid="stSidebar"] span[data-testid="stWidgetLabel"] ~ div div {
-            color: #FFFFFF !important;
-        }
-        /* Fallback for general markdown blocks in sidebar */
-        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
             color: #FFFFFF !important;
         }
     </style>
@@ -28,7 +35,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# 2. State Management (Single Source of Truth)
+# 2. Python State Synchronization
 if "pos" not in st.session_state:
     st.session_state.pos = 1
 
@@ -42,8 +49,8 @@ def step_up():
     if st.session_state.pos < MAX_RESIDUE:
         st.session_state.pos += 1
 
-# 3. Sidebar Configuration (Controls)
-st.sidebar.header("Navigation & Variant Setup")
+# 3. Sidebar Construction
+st.sidebar.header("🧬 Configuration Controls")
 
 col_prev, col_next = st.sidebar.columns(2)
 with col_prev:
@@ -58,118 +65,133 @@ st.slider(
     key="pos"
 )
 
+# Active coordinate metrics extraction
 current_pos = st.session_state.pos
 wt_residue = REF_SEQ[current_pos - 1]
 wt_full_name = AA_MAP.get(wt_residue, "Unknown Residue")
 
 st.sidebar.markdown(f"**Wild-Type Residue:** `{wt_residue}{current_pos}` ({wt_full_name})")
 
+# Clean Variant Options Lookup mapping
 aa_options = [f"{aa} ({name})" for aa, name in AA_MAP.items() if aa != wt_residue]
 selected_alt_raw = st.sidebar.selectbox("Select Variant Allele (MUT)", aa_options)
-alt_residue = selected_alt_raw.split(" ")
+alt_residue = selected_alt_raw.split(" ")[0]
 
-# 4. Streamlit Python Metric Lookups
-if current_pos in HELIX_MAP:
-    domain_type = f"Transmembrane Helix {HELIX_MAP[current_pos]}"
-    domain_css = "background-color: rgba(239, 68, 68, 0.15); color: #fca5a5; border-color: #ef4444;"
-elif current_pos in LOOP_MAP:
-    domain_type = f"{LOOP_MAP[current_pos]}"
-    domain_css = "background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; border-color: #3b82f6;"
-else:
-    domain_type = "Unmapped / Terminal Tail"
-    domain_css = "background-color: rgba(107, 114, 128, 0.15); color: #d1d5db; border-color: #6b7280;"
-
-variant_key = f"{wt_residue}{current_pos}{alt_residue}"
-clinvar_status = CLINVAR_DB.get(variant_key, "Not Documented / Novel Variant")
-
-if "Pathogenic" in clinvar_status:
-    clinvar_css = "background-color: rgba(244, 63, 94, 0.15); color: #fda4af; border-color: #f43f5e;"
-elif "Benign" in clinvar_status:
-    clinvar_css = "background-color: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: #10b981;"
-else:
-    clinvar_css = "background-color: rgba(245, 158, 11, 0.15); color: #fde047; border-color: #f55e0b;"
-
-# 5. Core Layout Structure (Main Window)
-st.title("⚡ SLC6A8 Creatine Transporter Variant Explorer")
-st.subheader(f"Current Target: {wt_residue}{current_pos}{alt_residue}")
-
-# Render metrics using clean HTML layout to match the dashboard style
-metrics_col1, metrics_col2 = st.columns(2)
-with metrics_col1:
-    st.markdown(
-        f"""<div style="padding: 1.25rem; border-radius: 0.75rem; border-left-width: 4px; border-style: solid; min-height: 90px; {domain_css}">
-            <span style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #9ca3af; display: block; tracking-ratio: 0.05em;">Structural Domain Map</span>
-            <span style="font-size: 1.125rem; font-weight: 800; margin-top: 0.25rem; display: block;">{domain_type}</span>
-        </div>""", 
-        unsafe_allow_html=True
-    )
-
-with metrics_col2:
-    st.markdown(
-        f"""<div style="padding: 1.25rem; border-radius: 0.75rem; border-left-width: 4px; border-style: solid; min-height: 90px; {clinvar_css}">
-            <span style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #9ca3af; display: block; tracking-ratio: 0.05em;">ClinVar Database Classification</span>
-            <span style="font-size: 1.125rem; font-weight: 800; margin-top: 0.25rem; display: block;">{clinvar_status}</span>
-        </div>""", 
-        unsafe_allow_html=True
-    )
-
-st.write("") # Tiny spacer
-
-# 6. Injecting the Interactive Chart Template (Chart.js Engine)
-st.markdown("### LeuT-Structural Configuration Map")
-
-# Convert Python map structures to JSON safe parameters for browser processing
+# 4. Preparing variables for JavaScript ingestion
 helix_json = json.dumps(HELIX_MAP)
 loop_json = json.dumps(LOOP_MAP)
+clinvar_json = json.dumps(CLINVAR_DB)
 
-# Generate raw interactive HTML frame responsive component block
+# 5. The Monolithic App Component Template (Compiled into an integrated presentation frame)
 html_code = f"""
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <script src="https://tailwindcss.com"></script>
     <script src="https://jsdelivr.net"></script>
     <style>
-        body {{ 
-            background-color: #0e1117; 
-            margin: 0; 
-            padding: 10px; 
-            overflow: hidden; 
-            font-family: sans-serif; 
-        }}
-        .chart-wrapper {{
-            background-color: #1f2937;
-            border: 1px solid #374151;
-            border-radius: 0.75rem;
-            padding: 1.25rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-        }}
-        .chart-container {{ 
-            position: relative; 
-            width: 100%; 
-            height: 300px; 
-        }}
+        body {{ background-color: #0f172a; margin: 0; padding: 24px; font-family: sans-serif; overflow-x: hidden; }}
+        /* Hide scrollbars for an explicit dashboard appearance */
+        ::-webkit-scrollbar {{ display: none; }}
     </style>
 </head>
-<body>
-    <div class="chart-wrapper">
-        <div class="chart-container">
-            <canvas id="canvasChart"></canvas>
+<body class="text-gray-100">
+
+    <div class="space-y-6">
+        <!-- Title Workspace -->
+        <div>
+            <h1 class="text-3xl font-extrabold text-white tracking-tight">
+                ⚡ SLC6A8 Creatine Transporter Variant Explorer
+            </h1>
+            <p class="text-gray-400 text-sm mt-1">
+                Dynamic LeuT-Fold configuration and validation sandbox.
+            </p>
+        </div>
+
+        <!-- Status Display Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Structural Information Card -->
+            <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-xl">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Structural Domain Map</h3>
+                <div id="domain-card" class="p-4 rounded-lg flex flex-col justify-center min-h-[90px] transition-colors duration-200">
+                    <span id="domain-title" class="text-lg font-bold text-gray-900">Determining...</span>
+                </div>
+            </div>
+
+            <!-- ClinVar Database Card -->
+            <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-xl">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">ClinVar Database Classification</h3>
+                <div id="clinvar-card" class="p-4 rounded-lg flex flex-col justify-center min-h-[90px] transition-colors duration-200">
+                    <span id="clinvar-title" class="text-lg font-bold text-gray-900">Checking DB...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Topology Plot Container -->
+        <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">LeuT-Structural Configuration Map</h3>
+                <span class="text-xs text-gray-500 font-mono">Interactive Vector Workspace</span>
+            </div>
+            <div class="relative w-full h-[320px]">
+                <canvas id="topologyChart"></canvas>
+            </div>
         </div>
     </div>
 
+    <!-- PIPELINE SCRIPT INTERFACES -->
     <script>
-        const refSeqLength = {MAX_RESIDUE};
+        // Synchronized constants injected from python state boundaries
+        const REF_SEQ = "{REF_SEQ}";
         const currentPos = {current_pos};
+        const altAA = "{alt_residue}";
+        const wtAA = "{wt_residue}";
+
         const helixMap = {helix_json};
         const loopMap = {loop_json};
+        const clinvarDb = {clinvar_json};
 
-        const xCoords = Array.from({{length: refSeqLength}}, (_, i) => i + 1);
+        // Trace Math Generation
+        const xCoords = Array.from({{length: REF_SEQ.length}}, (_, i) => i + 1);
         const backboneTrace = xCoords.map(x => Math.sin(x / 10) * 5 + Math.cos(x / 35) * 2);
 
+        // DOM nodes setup
+        const domainCard = document.getElementById('domain-card');
+        const domainTitle = document.getElementById('domain-title');
+        const clinvarCard = document.getElementById('clinvar-card');
+        const clinvarTitle = document.getElementById('clinvar-title');
+
+        // Process Topology Card Styles
+        if (helixMap[currentPos]) {{
+            domainTitle.textContent = "Transmembrane Helix " + helixMap[currentPos];
+            domainCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-red-900/40 text-red-200 border-l-4 border-red-500 shadow-inner";
+        }} else if (loopMap[currentPos]) {{
+            domainTitle.textContent = loopMap[currentPos];
+            domainCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-blue-900/40 text-blue-200 border-l-4 border-blue-500 shadow-inner";
+        }} else {{
+            domainTitle.textContent = "Unmapped Region";
+            domainCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-gray-700/50 text-gray-300 border-l-4 border-gray-500 shadow-inner";
+        }}
+
+        // Process Variant Mapping Evaluation
+        const variantKey = wtAA + currentPos + altAA;
+        const statusStr = clinvarDb[variantKey] || "Not Documented / Novel Variant";
+        clinvarTitle.textContent = statusStr;
+
+        if (statusStr.includes("Pathogenic")) {{
+            clinvarCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-rose-900/40 text-rose-200 border-l-4 border-rose-500 shadow-inner";
+        }} else if (statusStr.includes("Benign")) {{
+            clinvarCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-emerald-900/40 text-emerald-200 border-l-4 border-emerald-500 shadow-inner";
+        }} else {{
+            clinvarCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-amber-900/40 text-amber-200 border-l-4 border-amber-500 shadow-inner";
+        }}
+
+        // Initialize Chart Data Filters
         const helixData = xCoords.filter(x => helixMap[x]).map(x => ({{ x: x, y: backboneTrace[x-1] }}));
         const loopData = xCoords.filter(x => loopMap[x]).map(x => ({{ x: x, y: backboneTrace[x-1] }}));
 
-        const ctx = document.getElementById('canvasChart').getContext('2d');
+        const ctx = document.getElementById('topologyChart').getContext('2d');
         new Chart(ctx, {{
             type: 'scatter',
             data: {{
@@ -177,20 +199,18 @@ html_code = f"""
                     {{ label: 'Backbone', data: xCoords.map((x, i) => ({{ x: x, y: backboneTrace[i] }})), showLine: true, borderColor: '#4b5563', borderWidth: 2, pointRadius: 0, order: 2 }},
                     {{ label: 'TM Helices', data: helixData, backgroundColor: '#ef4444', pointRadius: 4, order: 3 }},
                     {{ label: 'Loops', data: loopData, backgroundColor: '#3b82f6', pointRadius: 4, order: 4 }},
-                    {{ label: 'Active Locus', data: [{{ x: currentPos, y: backboneTrace[currentPos - 1] }}], backgroundColor: '#10b981', pointRadius: 10, borderColor: '#ffffff', borderWidth: 2, order: 1 }}
+                    {{ label: 'Active Locus', data: [{{ x: currentPos, y: backboneTrace[currentPos - 1] }}], backgroundColor: '#10b981', pointRadius: 10, borderColor: '#ffffff', borderWidth: 3, order: 1 }}
                 ]
             }},
             options: {{
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {{
-                    x: {{ type: 'linear', title: {{ display: true, text: 'Residue Position Sequence', color: '#9ca3af' }}, grid: {{ color: '#374151' }}, ticks: {{ color: '#9ca3af' }}, min: 1, max: refSeqLength }},
-                    y: {{ title: {{ display: true, text: 'Membrane Vector Coordinate', color: '#9ca3af' }}, grid: {{ color: '#374151' }}, ticks: '#374151', display: false }}
+                    x: {{ type: 'linear', title: {{ display: true, text: 'Residue Position Sequence', color: '#9ca3af', font: {{ size: 12, weight: 'bold' }} }}, grid: {{ color: '#374151' }}, ticks: {{ color: '#9ca3af' }}, min: 1, max: REF_SEQ.length }},
+                    y: {{ display: false }}
                 }},
                 plugins: {{ 
-                    legend: {{ 
-                        labels: {{ color: '#f3f4f6', boxWidth: 12, font: {{ size: 11 }} }} 
-                    }} 
+                    legend: {{ labels: {{ color: '#f3f4f6', boxWidth: 12, font: {{ size: 12 }} }} }}
                 }}
             }}
         }});
@@ -199,5 +219,5 @@ html_code = f"""
 </html>
 """
 
-# Render custom component window
-components.html(html_code, height=370)
+# 6. Render as a unified layout dashboard viewport panel
+components.html(html_code, height=650, scrolling=False)
