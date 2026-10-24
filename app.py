@@ -1,28 +1,19 @@
 import streamlit as st
-import json
-from topology import REF_SEQ, AA_MAP, CLINVAR_DB, HELIX_MAP, LOOP_MAP
-import streamlit.components.v1 as components
+import matplotlib.pyplot as plt
+import numpy as np
 
-# 1. Force Streamlit to hide its default wrappers, margins, and headers globally
+# Import backend elements securely
+from topology import REF_SEQ, AA_MAP, CLINVAR_DB, HELIX_MAP, LOOP_MAP
+
+# 1. Initialize Layout and Custom Clean Styles
 st.set_page_config(page_title="SLC6A8 Mutation Predictor", layout="wide")
 
+# Inject explicit dark theme parameters across all core containers
 st.markdown(
     """
     <style>
-        /* Eliminate native Streamlit body padding to let the template expand fully */
-        [data-testid="stAppViewContainer"] {
-            background-color: #0f172a !important;
-        }
-        [data-testid="stMainBlockContainer"] {
-            padding: 0rem !important;
-            max-width: 100% !important;
-        }
-        /* Completely hide standard header anchors */
-        header { visibility: hidden !important; height: 0px !important; }
-        div[data-testid="stToolbar"] { display: none !important; }
-        
-        /* Force Bright White text labels inside native Sidebar frame */
-        [data-testid="stSidebar"] .stWidgetLabel p, 
+        /* Force explicit white typography styling on sidebar control components */
+        [data-testid="stSidebar"] .stWidgetLabel p,
         [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
             color: #FFFFFF !important;
             font-weight: 600 !important;
@@ -30,12 +21,36 @@ st.markdown(
         [data-testid="stSidebar"] span[data-testid="stWidgetLabel"] ~ div div {
             color: #FFFFFF !important;
         }
+        /* Custom Metric Style Overrides */
+        .metric-card {
+            padding: 1.25rem;
+            border-radius: 0.75rem;
+            border-left-width: 4px;
+            border-style: solid;
+            background-color: #1e293b;
+            min-height: 100px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .metric-label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #9ca3af;
+            letter-spacing: 0.05em;
+            display: block;
+        }
+        .metric-value {
+            font-size: 1.15rem;
+            font-weight: 800;
+            margin-top: 0.25rem;
+            display: block;
+        }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# 2. Python State Synchronization
+# 2. State Management Framework
 if "pos" not in st.session_state:
     st.session_state.pos = 1
 
@@ -49,7 +64,7 @@ def step_up():
     if st.session_state.pos < MAX_RESIDUE:
         st.session_state.pos += 1
 
-# 3. Sidebar Construction
+# 3. Sidebar Setup Configuration
 st.sidebar.header("🧬 Configuration Controls")
 
 col_prev, col_next = st.sidebar.columns(2)
@@ -65,159 +80,101 @@ st.slider(
     key="pos"
 )
 
-# Active coordinate metrics extraction
+# Core feature lookups
 current_pos = st.session_state.pos
 wt_residue = REF_SEQ[current_pos - 1]
 wt_full_name = AA_MAP.get(wt_residue, "Unknown Residue")
 
 st.sidebar.markdown(f"**Wild-Type Residue:** `{wt_residue}{current_pos}` ({wt_full_name})")
 
-# Clean Variant Options Lookup mapping
-aa_options = [f"{aa} ({name})" for aa, name in AA_MAP.items() if aa != wt_residue]
-selected_alt_raw = st.sidebar.selectbox("Select Variant Allele (MUT)", aa_options)
-alt_residue = selected_alt_raw.split(" ")[0]
+# Extract the isolated alternative amino acid key safely without array fragmentation
+aa_options = [f"{aa}" for aa in AA_MAP.keys() if aa != wt_residue]
+alt_residue = st.sidebar.selectbox("Select Variant Allele (MUT)", aa_options)
 
-# 4. Preparing variables for JavaScript ingestion
-helix_json = json.dumps(HELIX_MAP)
-loop_json = json.dumps(LOOP_MAP)
-clinvar_json = json.dumps(CLINVAR_DB)
+# 4. Process Structural Card Variables
+if current_pos in HELIX_MAP:
+    domain_type = f"Transmembrane Helix {HELIX_MAP[current_pos]}"
+    domain_style = "border-color: #ef4444; color: #fca5a5;"
+elif current_pos in LOOP_MAP:
+    domain_type = f"{LOOP_MAP[current_pos]}"
+    domain_style = "border-color: #3b82f6; color: #93c5fd;"
+else:
+    domain_type = "Unmapped Terminal Segment"
+    domain_style = "border-color: #6b7280; color: #d1d5db;"
 
-# 5. The Monolithic App Component Template (Compiled into an integrated presentation frame)
-html_code = f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <script src="https://tailwindcss.com"></script>
-    <script src="https://jsdelivr.net"></script>
-    <style>
-        body {{ background-color: #0f172a; margin: 0; padding: 24px; font-family: sans-serif; overflow-x: hidden; }}
-        /* Hide scrollbars for an explicit dashboard appearance */
-        ::-webkit-scrollbar {{ display: none; }}
-    </style>
-</head>
-<body class="text-gray-100">
+# Process Variant Mapping Database Lookup
+variant_key = f"{wt_residue}{current_pos}{alt_residue}"
+clinvar_status = CLINVAR_DB.get(variant_key, "Not Documented / Novel Variant")
 
-    <div class="space-y-6">
-        <!-- Title Workspace -->
-        <div>
-            <h1 class="text-3xl font-extrabold text-white tracking-tight">
-                ⚡ SLC6A8 Creatine Transporter Variant Explorer
-            </h1>
-            <p class="text-gray-400 text-sm mt-1">
-                Dynamic LeuT-Fold configuration and validation sandbox.
-            </p>
-        </div>
+if "Pathogenic" in clinvar_status:
+    clinvar_style = "border-color: #f43f5e; color: #fda4af;"
+elif "Benign" in clinvar_status:
+    clinvar_style = "border-color: #10b981; color: #6ee7b7;"
+else:
+    clinvar_style = "border-color: #f59e0b; color: #fde047;"
 
-        <!-- Status Display Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Structural Information Card -->
-            <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-xl">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Structural Domain Map</h3>
-                <div id="domain-card" class="p-4 rounded-lg flex flex-col justify-center min-h-[90px] transition-colors duration-200">
-                    <span id="domain-title" class="text-lg font-bold text-gray-900">Determining...</span>
-                </div>
-            </div>
+# 5. Core Interface Display Assembly
+st.title("⚡ SLC6A8 Creatine Transporter Variant Explorer")
+st.subheader(f"Current Target Locus: {wt_residue}{current_pos}{alt_residue}")
 
-            <!-- ClinVar Database Card -->
-            <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-xl">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">ClinVar Database Classification</h3>
-                <div id="clinvar-card" class="p-4 rounded-lg flex flex-col justify-center min-h-[90px] transition-colors duration-200">
-                    <span id="clinvar-title" class="text-lg font-bold text-gray-900">Checking DB...</span>
-                </div>
-            </div>
-        </div>
+# Render metrics columns natively using our custom style definitions
+metrics_col1, metrics_col2 = st.columns(2)
+with metrics_col1:
+    st.markdown(
+        f"""<div class="metric-card" style="{domain_style}">
+            <span class="metric-label">Structural Domain Map</span>
+            <span class="metric-value">{domain_type}</span>
+        </div>""", 
+        unsafe_allow_html=True
+    )
 
-        <!-- Interactive Topology Plot Container -->
-        <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-xl">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">LeuT-Structural Configuration Map</h3>
-                <span class="text-xs text-gray-500 font-mono">Interactive Vector Workspace</span>
-            </div>
-            <div class="relative w-full h-[320px]">
-                <canvas id="topologyChart"></canvas>
-            </div>
-        </div>
-    </div>
+with metrics_col2:
+    st.markdown(
+        f"""<div class="metric-card" style="{clinvar_style}">
+            <span class="metric-label">ClinVar Database Classification</span>
+            <span class="metric-value">{clinvar_status}</span>
+        </div>""", 
+        unsafe_allow_html=True
+    )
 
-    <!-- PIPELINE SCRIPT INTERFACES -->
-    <script>
-        // Synchronized constants injected from python state boundaries
-        const REF_SEQ = "{REF_SEQ}";
-        const currentPos = {current_pos};
-        const altAA = "{alt_residue}";
-        const wtAA = "{wt_residue}";
+st.write("") # Spacer
 
-        const helixMap = {helix_json};
-        const loopMap = {loop_json};
-        const clinvarDb = {clinvar_json};
+# 6. Advanced Matplotlib Native Configuration (Engineered to match Dark Mode Dashboard layout)
+st.markdown("### LeuT-Structural Configuration Map")
 
-        // Trace Math Generation
-        const xCoords = Array.from({{length: REF_SEQ.length}}, (_, i) => i + 1);
-        const backboneTrace = xCoords.map(x => Math.sin(x / 10) * 5 + Math.cos(x / 35) * 2);
+# Set up clean dark theme properties manually for the figure layout
+plt.style.use('dark_background')
+fig, ax = plt.subplots(figsize=(10, 4.5))
+fig.patch.set_facecolor('#0f172a') # Matches Streamlit's canvas layer background
+ax.set_facecolor('#1e293b')        # Matches internal card frames
 
-        // DOM nodes setup
-        const domainCard = document.getElementById('domain-card');
-        const domainTitle = document.getElementById('domain-title');
-        const clinvarCard = document.getElementById('clinvar-card');
-        const clinvarTitle = document.getElementById('clinvar-title');
+# Plot Backbone Matrix Coordinates
+x_coords = np.arange(1, MAX_RESIDUE + 1)
+y_coords = np.sin(x_coords / 10) * 5 + np.cos(x_coords / 35) * 2
+ax.plot(x_coords, y_coords, color="#4b5563", label="Protein Backbone", zorder=1, linewidth=2)
 
-        // Process Topology Card Styles
-        if (helixMap[currentPos]) {{
-            domainTitle.textContent = "Transmembrane Helix " + helixMap[currentPos];
-            domainCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-red-900/40 text-red-200 border-l-4 border-red-500 shadow-inner";
-        }} else if (loopMap[currentPos]) {{
-            domainTitle.textContent = loopMap[currentPos];
-            domainCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-blue-900/40 text-blue-200 border-l-4 border-blue-500 shadow-inner";
-        }} else {{
-            domainTitle.textContent = "Unmapped Region";
-            domainCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-gray-700/50 text-gray-300 border-l-4 border-gray-500 shadow-inner";
-        }}
+# Filter out specific groupings for multi-scatter passes
+helix_x = [p for p in x_coords if p in HELIX_MAP]
+helix_y = [y_coords[p-1] for p in helix_x]
+loop_x = [p for p in x_coords if p in LOOP_MAP]
+loop_y = [y_coords[p-1] for p in loop_x]
 
-        // Process Variant Mapping Evaluation
-        const variantKey = wtAA + currentPos + altAA;
-        const statusStr = clinvarDb[variantKey] || "Not Documented / Novel Variant";
-        clinvarTitle.textContent = statusStr;
+ax.scatter(helix_x, helix_y, color="#ef4444", s=25, label="TM Helices", zorder=2, alpha=0.85)
+ax.scatter(loop_x, loop_y, color="#3b82f6", s=25, label="Loops / Tails", zorder=2, alpha=0.85)
 
-        if (statusStr.includes("Pathogenic")) {{
-            clinvarCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-rose-900/40 text-rose-200 border-l-4 border-rose-500 shadow-inner";
-        }} else if (statusStr.includes("Benign")) {{
-            clinvarCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-emerald-900/40 text-emerald-200 border-l-4 border-emerald-500 shadow-inner";
-        }} else {{
-            clinvarCard.className = "p-4 rounded-lg flex flex-col justify-center min-h-[90px] bg-amber-900/40 text-amber-200 border-l-4 border-amber-500 shadow-inner";
-        }}
+# Accentuate our dynamic targeted index variant dot
+ax.scatter([current_pos], [y_coords[current_pos-1]], color="#10b981", s=180, edgecolor="#ffffff", linewidth=2.5, label=f"Active Site ({wt_residue}{current_pos})", zorder=5)
 
-        // Initialize Chart Data Filters
-        const helixData = xCoords.filter(x => helixMap[x]).map(x => ({{ x: x, y: backboneTrace[x-1] }}));
-        const loopData = xCoords.filter(x => loopMap[x]).map(x => ({{ x: x, y: backboneTrace[x-1] }}));
+# Styling clean-ups
+ax.set_xlabel("Residue Position Sequence", fontsize=9, color="#9ca3af", fontweight='bold')
+ax.grid(True, linestyle=":", alpha=0.2, color="#9ca3af")
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['left'].set_color('#374151')
+ax.spines['bottom'].set_color('#374151')
+ax.tick_params(colors='#9ca3af', labelsize=8)
+ax.get_yaxis().set_visible(False) # Clean look mapping like vector template
+ax.legend(loc="upper right", framealpha=0.6, facecolor="#1e293b", edgecolor="#374151", fontsize=8)
 
-        const ctx = document.getElementById('topologyChart').getContext('2d');
-        new Chart(ctx, {{
-            type: 'scatter',
-            data: {{
-                datasets: [
-                    {{ label: 'Backbone', data: xCoords.map((x, i) => ({{ x: x, y: backboneTrace[i] }})), showLine: true, borderColor: '#4b5563', borderWidth: 2, pointRadius: 0, order: 2 }},
-                    {{ label: 'TM Helices', data: helixData, backgroundColor: '#ef4444', pointRadius: 4, order: 3 }},
-                    {{ label: 'Loops', data: loopData, backgroundColor: '#3b82f6', pointRadius: 4, order: 4 }},
-                    {{ label: 'Active Locus', data: [{{ x: currentPos, y: backboneTrace[currentPos - 1] }}], backgroundColor: '#10b981', pointRadius: 10, borderColor: '#ffffff', borderWidth: 3, order: 1 }}
-                ]
-            }},
-            options: {{
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {{
-                    x: {{ type: 'linear', title: {{ display: true, text: 'Residue Position Sequence', color: '#9ca3af', font: {{ size: 12, weight: 'bold' }} }}, grid: {{ color: '#374151' }}, ticks: {{ color: '#9ca3af' }}, min: 1, max: REF_SEQ.length }},
-                    y: {{ display: false }}
-                }},
-                plugins: {{ 
-                    legend: {{ labels: {{ color: '#f3f4f6', boxWidth: 12, font: {{ size: 12 }} }} }}
-                }}
-            }}
-        }});
-    </script>
-</body>
-</html>
-"""
-
-# 6. Render as a unified layout dashboard viewport panel
-components.html(html_code, height=650, scrolling=False)
+# Output clean frame
+st.pyplot(fig)
