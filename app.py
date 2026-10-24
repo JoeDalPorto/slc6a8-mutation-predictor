@@ -66,28 +66,28 @@ st.sidebar.markdown(f"**Wild-Type Residue:** `{wt_residue}{current_pos}` ({wt_fu
 
 aa_options = [f"{aa} ({name})" for aa, name in AA_MAP.items() if aa != wt_residue]
 selected_alt_raw = st.sidebar.selectbox("Select Variant Allele (MUT)", aa_options)
-alt_residue = selected_alt_raw.split(" ")[0]
+alt_residue = selected_alt_raw.split(" ")
 
 # 4. Streamlit Python Metric Lookups
 if current_pos in HELIX_MAP:
     domain_type = f"Transmembrane Helix {HELIX_MAP[current_pos]}"
-    domain_class = "bg-red-900/40 text-red-200 border-red-500"
+    domain_css = "background-color: rgba(239, 68, 68, 0.15); color: #fca5a5; border-color: #ef4444;"
 elif current_pos in LOOP_MAP:
     domain_type = f"{LOOP_MAP[current_pos]}"
-    domain_class = "bg-blue-900/40 text-blue-200 border-blue-500"
+    domain_css = "background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; border-color: #3b82f6;"
 else:
     domain_type = "Unmapped / Terminal Tail"
-    domain_class = "bg-gray-800 text-gray-400 border-gray-600"
+    domain_css = "background-color: rgba(107, 114, 128, 0.15); color: #d1d5db; border-color: #6b7280;"
 
 variant_key = f"{wt_residue}{current_pos}{alt_residue}"
 clinvar_status = CLINVAR_DB.get(variant_key, "Not Documented / Novel Variant")
 
 if "Pathogenic" in clinvar_status:
-    clinvar_class = "bg-rose-900/40 text-rose-200 border-rose-600"
+    clinvar_css = "background-color: rgba(244, 63, 94, 0.15); color: #fda4af; border-color: #f43f5e;"
 elif "Benign" in clinvar_status:
-    clinvar_class = "bg-emerald-900/40 text-emerald-200 border-emerald-500"
+    clinvar_css = "background-color: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: #10b981;"
 else:
-    clinvar_class = "bg-amber-900/40 text-amber-200 border-amber-500"
+    clinvar_css = "background-color: rgba(245, 158, 11, 0.15); color: #fde047; border-color: #f55e0b;"
 
 # 5. Core Layout Structure (Main Window)
 st.title("⚡ SLC6A8 Creatine Transporter Variant Explorer")
@@ -97,21 +97,23 @@ st.subheader(f"Current Target: {wt_residue}{current_pos}{alt_residue}")
 metrics_col1, metrics_col2 = st.columns(2)
 with metrics_col1:
     st.markdown(
-        f"""<div class="p-4 rounded-lg border-l-4 {domain_class}" style="padding: 1rem; border-radius: 0.5rem; border-left-width: 4px; background-color: rgba(30, 41, 59, 0.7); min-height: 90px; border-color: inherit;">
-            <span style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #9ca3af; display: block;">Structural Domain Map</span>
-            <span style="font-size: 1.125rem; font-weight: bold; margin-top: 0.25rem; display: block;">{domain_type}</span>
+        f"""<div style="padding: 1.25rem; border-radius: 0.75rem; border-left-width: 4px; border-style: solid; min-height: 90px; {domain_css}">
+            <span style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #9ca3af; display: block; tracking-ratio: 0.05em;">Structural Domain Map</span>
+            <span style="font-size: 1.125rem; font-weight: 800; margin-top: 0.25rem; display: block;">{domain_type}</span>
         </div>""", 
         unsafe_allow_html=True
     )
 
 with metrics_col2:
     st.markdown(
-        f"""<div class="p-4 rounded-lg border-l-4 {clinvar_class}" style="padding: 1rem; border-radius: 0.5rem; border-left-width: 4px; background-color: rgba(30, 41, 59, 0.7); min-height: 90px; border-color: inherit;">
-            <span style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #9ca3af; display: block;">ClinVar Database Classification</span>
-            <span style="font-size: 1.125rem; font-weight: bold; margin-top: 0.25rem; display: block;">{clinvar_status}</span>
+        f"""<div style="padding: 1.25rem; border-radius: 0.75rem; border-left-width: 4px; border-style: solid; min-height: 90px; {clinvar_css}">
+            <span style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #9ca3af; display: block; tracking-ratio: 0.05em;">ClinVar Database Classification</span>
+            <span style="font-size: 1.125rem; font-weight: 800; margin-top: 0.25rem; display: block;">{clinvar_status}</span>
         </div>""", 
         unsafe_allow_html=True
     )
+
+st.write("") # Tiny spacer
 
 # 6. Injecting the Interactive Chart Template (Chart.js Engine)
 st.markdown("### LeuT-Structural Configuration Map")
@@ -127,13 +129,32 @@ html_code = f"""
 <head>
     <script src="https://jsdelivr.net"></script>
     <style>
-        body {{ background-color: #111827; margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }}
-        .chart-container {{ position: relative; width: 100vw; height: 320px; }}
+        body {{ 
+            background-color: #0e1117; 
+            margin: 0; 
+            padding: 10px; 
+            overflow: hidden; 
+            font-family: sans-serif; 
+        }}
+        .chart-wrapper {{
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }}
+        .chart-container {{ 
+            position: relative; 
+            width: 100%; 
+            height: 300px; 
+        }}
     </style>
 </head>
 <body>
-    <div class="chart-container">
-        <canvas id="canvasChart"></canvas>
+    <div class="chart-wrapper">
+        <div class="chart-container">
+            <canvas id="canvasChart"></canvas>
+        </div>
     </div>
 
     <script>
@@ -164,9 +185,13 @@ html_code = f"""
                 maintainAspectRatio: false,
                 scales: {{
                     x: {{ type: 'linear', title: {{ display: true, text: 'Residue Position Sequence', color: '#9ca3af' }}, grid: {{ color: '#374151' }}, ticks: {{ color: '#9ca3af' }}, min: 1, max: refSeqLength }},
-                    y: {{ title: {{ display: true, text: 'Membrane Vector Coordinate', color: '#9ca3af' }}, grid: {{ color: '#374151' }}, ticks: {{ color: '#9ca3af' }} }}
+                    y: {{ title: {{ display: true, text: 'Membrane Vector Coordinate', color: '#9ca3af' }}, grid: {{ color: '#374151' }}, ticks: '#374151', display: false }}
                 }},
-                plugins: {{ legend: {{ labels: {{ color: '#f3f4f6' }} }} }}
+                plugins: {{ 
+                    legend: {{ 
+                        labels: {{ color: '#f3f4f6', boxWidth: 12, font: {{ size: 11 }} }} 
+                    }} 
+                }}
             }}
         }});
     </script>
@@ -175,4 +200,4 @@ html_code = f"""
 """
 
 # Render custom component window
-components.html(html_code, height=340)
+components.html(html_code, height=370)
