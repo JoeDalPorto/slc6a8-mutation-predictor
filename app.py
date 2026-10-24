@@ -181,7 +181,7 @@ html_code += f"""
                     {{ label: 'Backbone Trace', data: xCoords.map((x, i) => ({{ x: x, y: backboneTrace[i] }})), showLine: true, borderColor: '#4b5563', borderWidth: 2.5, pointRadius: 0, order: 2 }},
                     {{ label: 'TM Helices', data: helixData, backgroundColor: '#f87171', pointRadius: 5, order: 3 }},
                     {{ label: 'Loops / Tails', data: loopData, backgroundColor: '#60a5fa', pointRadius: 5, order: 4 }},
-                    {{ label: `Active Site (${wtAA}${{currentPos}}${{altAA}})`, data: [{{ x: currentPos, y: backboneTrace[currentPos - 1] }}], backgroundColor: '#10b981', pointRadius: 11, borderColor: '#ffffff', borderWidth: 2.5, order: 1 }}
+                    {{ label: 'Active Site (' + wtAA + currentPos + altAA + ')', data: [{{ x: currentPos, y: backboneTrace[currentPos - 1] }}], backgroundColor: '#10b981', pointRadius: 11, borderColor: '#ffffff', borderWidth: 2.5, order: 1 }}
                 ]
             }},
             options: {{
@@ -200,3 +200,4 @@ html_code += f"""
 """
 
 components.html(html_code, height=660, scrolling=False)
+
