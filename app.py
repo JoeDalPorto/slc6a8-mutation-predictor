@@ -7,11 +7,24 @@ from topology import REF_SEQ, AA_MAP, CLINVAR_DB, HELIX_MAP, LOOP_MAP
 
 st.set_page_config(page_title="SLC6A8 Predictor", page_icon="🧬", layout="centered")
 
-# Premium Interface CSS Styling Configuration
+# PREMIUM CSS DESIGN - Enforcing clean white sidebar text
 st.markdown("""
 <style>
     .stApp { background-color: #0b0f19; color: #f1f5f9; font-family: 'Inter', sans-serif; }
-    section[data-testid='stSidebar'] { background-color: #111827 !important; border-right: 1px solid #1f2937; }
+    
+    /* Make all sidebar text labels and captions bright white */
+    section[data-testid='stSidebar'] { 
+        background-color: #111827 !important; 
+        border-right: 1px solid #1f2937; 
+    }
+    section[data-testid='stSidebar'] .stWidgetLabel p, 
+    section[data-testid='stSidebar'] p,
+    section[data-testid='stSidebar'] h2,
+    section[data-testid='stSidebar'] label {
+        color: #ffffff !important;
+        font-weight: 500 !important;
+    }
+    
     div[data-testid='stMetricValue'] { font-family: monospace !important; font-weight: 700 !important; color: #38bdf8 !important; font-size: 22px !important; }
     div[data-testid='metric-container'] { background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; border-radius: 12px; padding: 15px !important; }
     h1, h2, h3 { color: #ffffff !important; font-weight: 700 !important; }
@@ -21,30 +34,35 @@ st.markdown("""
 st.markdown("<h1 style='text-align: center; margin-bottom: 5px;'>🧬 SLC6A8 Computational Predictor</h1><p style='text-align: center; color: #94a3b8; font-size: 14px;'>Advanced LeuT-Fold Molecular Mutation Mapping Engine</p>", unsafe_allow_html=True)
 st.divider()
 
-# ─── STATE MANAGEMENT BIDIRECTIONAL LOGIC ───────────────────────────────────
+# ─── STATE MANAGEMENT SINGLE SLIDER SOURCE ──────────────────────────────────
 if "pos" not in st.session_state: 
     st.session_state.pos = 351
-
-# Force immediate updates across widgets when either one moves
-def update_from_box(): 
-    st.session_state.pos = st.session_state.b_in
-def update_from_slide(): 
-    st.session_state.pos = st.session_state.s_in
 
 current_pos = st.session_state.pos
 wt_letter = REF_SEQ[current_pos - 1] if current_pos <= len(REF_SEQ) else "G"
 
 with st.sidebar:
-    st.markdown("<h2 style='font-size: 18px;'>🛠️ Variant Editor</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-size: 18px; margin-bottom: 0;'>🛠️ Variant Editor</h2>", unsafe_allow_html=True)
+    st.write("")
+    
     mut_type = st.selectbox("Mechanism Type", ["Missense", "Nonsense", "Frameshift", "Synonymous"])
     
-    # Passing the exact variable directly into the value parameter guarantees box sync
-    st.number_input("Residue Position Box", 1, 635, value=current_pos, key="b_in", on_change=update_from_box)
-    st.slider("Residue Position Slider", 1, 635, value=current_pos, key="s_in", on_change=update_from_slide)
+    # Single residue slider input control
+    current_pos = st.slider("Residue Position", 1, 635, value=st.session_state.pos, key="pos")
     
-    st.markdown(f"<span style='color:#94a3b8; font-size:12px;'>AUTO-POPULATED WILD-TYPE</span><br><code style='font-size:14px; color:#38bdf8;'>{wt_letter} ({AA_MAP.get(wt_letter, 'Unknown')})</code>", unsafe_allow_html=True)
+    # Display wild-type using full nomenclature
+    st.markdown(f"**Wild-Type Residue:**  \n`{AA_MAP.get(wt_letter, 'Unknown')}`")
+    st.write("")
     
-    mut = "*" if mut_type == "Nonsense" else st.selectbox("Substitute Amino Acid", list(AA_MAP.keys()), index=10) if mut_type == "Missense" else "N/A"
+    # Substitute dropdown matching exact same nomenclature style as wild-type box
+    if mut_type == "Nonsense":
+        mut = "*"
+        st.markdown(f"**Substitute Residue:**  \n`{AA_MAP.get('*')}`")
+    elif mut_type == "Missense":
+        mut = st.selectbox("Substitute Residue", list(AA_MAP.keys()), index=10, format_func=lambda x: AA_MAP[x])
+    else:
+        mut = "N/A"
+        st.markdown("**Substitute Residue:**  \n`Not Applicable`")
 
 # ─── MAP STRUCTURAL LOCATIONS ───────────────────────────────────────────────
 active_id, dom_name = ("N", "Intracellular N-Terminus") if current_pos <= 40 else (("C", "Intracellular C-Terminus") if current_pos >= 571 else ("Loops", "Interhelical Structural Loop"))
@@ -66,8 +84,11 @@ else:
     elif active_id in ["N", "C"]: risk_score, trans_yield, pred, alert, mech = 15, 88, "Likely Benign (Low Risk)", st.success, "Alters flexible terminal tail residues outside vital functional structural wraps."
     else: risk_score, trans_yield, pred, alert, mech = 45, 55, "Variant of Uncertain Significance (VUS)", st.warning, "Modifies general peripheral scaffold wraps. Empirical tracking assays required."
 
-# The HGVS string structure must align precisely with your database keys (e.g. p.P382L)
+# Generate clean HGVS code for database lookups (e.g., p.P382L)
 hgvs = f"p.{wt_letter}{current_pos}{mut}" if mut_type == "Missense" else (f"p.{wt_letter}{current_pos}*" if mut_type == "Nonsense" else (f"p.X{current_pos}fs" if mut_type == "Frameshift" else "Synonymous"))
+
+# DEBUG Output Monitor to catch key mismatches live
+st.write(f"⚙️ **System Engine Variant String Generated:** `{hgvs}`")
 
 # ─── RENDER READOUT INTERFACE ───────────────────────────────────────────────
 col_a, col_b, col_c, col_d = st.columns(4)
