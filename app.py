@@ -41,20 +41,7 @@ with st.sidebar:
 active_id, dom_name = ("N", "Intracellular N-Terminus") if current_pos <= 40 else (("C", "Intracellular C-Terminus") if current_pos >= 571 else ("Loops", "Interhelical Structural Loop"))
 
 for h_id, (s, e) in HELIX_MAP.items():
-    if s 
-        <h4 style="color: #eab308 !important; margin: 0 0 5px 0; font-size: 14px;">📚 ClinVar Archive Database Match Found</h4>
-        <span style="font-size: 13px;"><b>Clinical Status:</b> {cm[1]}</span><br>
-        <span style="font-size: 13px; color: #94a3b8;"><b>Evidence Track:</b> {cm[2]}</span><br>
-        <span style="font-size: 13px; color: #cbd5e1;"><b>Formal Variant Reference:</b> <i>{cm[3]}</i></span><br>
-        <span style="font-size: 12px; margin-top: 8px; display:inline-block;"><a href="https://nih.gov{cm[0]}" target="_blank" style="color: #38bdf8; text-decoration: none;">Open Official NCBI Variation Record #{cm[0]} ➔</a></span>
-    </div>
-    """, unsafe_allow_html=True)
-
-alert(f"### Predictor Model Output: {pred}")
-st.info(f"**Predicted Molecular Impact:**\n\n{mech}")
-
-# ─── VECTOR IMAGING BLUEPRINT ───────────────────────────────────────────────
-st.markdown("<h3 style='font-size: 18px; margin-top: 20px;'>🗺️ Experimental LeuT-Fold Blueprint Mapping</h3>", unsafe_allow_html=True)
+    if s Experimental LeuT-Fold Blueprint Mapping</h3>", unsafe_allow_html=True)
 fig, ax = plt.subplots(figsize=(7.5, 3.1), facecolor='#0b0f19')
 ax.set_facecolor('#0b0f19')
 
